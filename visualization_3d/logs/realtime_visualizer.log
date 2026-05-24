@@ -1,0 +1,3 @@
+2026-03-20 19:27:14.595 | INFO     | __main__:__init__:75 - RealTimeVisualizer initialized
+2026-03-20 19:27:14.597 | INFO     | __main__:main:494 - WebSocket streaming enabled
+2026-03-20 19:27:14.598 | INFO     | __main__:main:495 - Open viewer_realtime.html in browser for 3D view

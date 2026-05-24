@@ -1,0 +1,39 @@
+# Real-Time Video Visualization Dependencies
+# Install with: pip install -r requirements_realtime.txt
+
+# Object Detection
+ultralytics>=8.0.0        # YOLOv8 for object detection
+
+# Video Processing
+opencv-python>=4.8.0      # OpenCV for video capture and preprocessing
+opencv-contrib-python>=4.8.0  # Additional OpenCV modules
+
+# Object Tracking
+filterpy>=1.4.5           # Kalman filter implementation
+lapx>=0.5.0               # Linear assignment for tracking (faster than lap)
+# OR use ByteTrack directly
+# git+https://github.com/ifzhang/ByteTrack.git
+
+# Real-time Communication
+fastapi>=0.104.0          # WebSocket server framework
+websockets>=12.0          # WebSocket protocol
+uvicorn[standard]>=0.24.0 # ASGI server
+
+# Data Processing
+numpy>=1.21.0             # Numerical operations (already in requirements.txt)
+pandas>=1.5.0             # Data manipulation (already in requirements.txt)
+
+# Visualization
+plotly>=5.18.0            # Interactive charts for dashboard
+streamlit>=1.28.0         # Dashboard (already in requirements.txt)
+
+# Utilities
+pyyaml>=6.0               # YAML configuration parsing
+loguru>=0.7.0             # Better logging
+aiofiles>=23.0.0          # Async file operations
+
+# Optional: GPU Acceleration (uncomment if using NVIDIA GPU)
+# torch --index-url https://download.pytorch.org/whl/cu118
+
+# Optional: Enhanced Tracking
+# sort-tracker>=1.4.0     # SORT tracker alternative

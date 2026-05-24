@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time 3D Traffic Visualization</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            grid-template-rows: 1fr;
+            height: 100vh;
+        }
+        
+        /* 3D Viewer */
+        #viewer-container {
+            position: relative;
+            background: #0a0a15;
+        }
+        
+        #viewer-container canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Loading overlay */
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 100;
+        }
+        
+        #loading h2 {
+            font-size: 2rem;
+            color: #4A90D9;
+            margin-bottom: 10px;
+        }
+        
+        #loading p {
+            color: #888;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #333;
+            border-top-color: #4A90D9;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Status indicator */
+        #status {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4444;
+            animation: pulse 1s ease-in-out infinite;
+        }
+        
+        .status-dot.connected {
+            background: #00ff00;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Sidebar */
+        #sidebar {
+            background: rgba(20, 20, 40, 0.95);
+            border-left: 1px solid rgba(74, 144, 217, 0.3);
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        #sidebar h1 {
+            font-size: 1.5rem;
+            color: #4A90D9;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(74, 144, 217, 0.3);
+        }
+        
+        /* Metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .metric-card {
+            background: rgba(74, 144, 217, 0.1);
+            border: 1px solid rgba(74, 144, 217, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4A90D9;
+        }
+        
+        .metric-label {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        /* Object counts */
+        .object-counts {
+            margin-bottom: 25px;
+        }
+        
+        .object-counts h3 {
+            color: #E8A87C;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        
+        .count-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .count-item .icon {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+        
+        .count-item .count {
+            font-weight: bold;
+            color: #4A90D9;
+            font-size: 1.2rem;
+        }
+        
+        /* Controls */
+        .controls {
+            margin-bottom: 25px;
+        }
+        
+        .controls h3 {
+            color: #E8A87C;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            cursor: pointer;
+        }
+        
+        .control-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .control-group select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(74, 144, 217, 0.1);
+            border: 1px solid rgba(74, 144, 217, 0.3);
+            border-radius: 6px;
+            color: white;
+            font-size: 0.9rem;
+        }
+        
+        /* View buttons */
+        .view-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .view-btn {
+            flex: 1;
+            padding: 10px;
+            background: rgba(74, 144, 217, 0.2);
+            border: 1px solid rgba(74, 144, 217, 0.3);
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .view-btn:hover {
+            background: rgba(74, 144, 217, 0.4);
+        }
+        
+        .view-btn.active {
+            background: #4A90D9;
+        }
+        
+        /* Log */
+        #log {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+        }
+        
+        .log-entry {
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .log-time {
+            color: #666;
+        }
+        
+        .log-info {
+            color: #4A90D9;
+        }
+        
+        .log-warning {
+            color: #F4C430;
+        }
+        
+        .log-error {
+            color: #DC4545;
+        }
+        
+        /* FPS counter */
+        #fps-counter {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            z-index: 10;
+        }
+        
+        #fps-counter .fps-value {
+            color: #00ff00;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        /* Scene info */
+        #scene-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 10;
+        }
+        
+        #scene-info p {
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto;
+            }
+            
+            #sidebar {
+                max-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 3D Viewer -->
+        <div id="viewer-container">
+            <div id="loading">
+                <div class="spinner"></div>
+                <h2>🎬 Loading 3D Viewer...</h2>
+                <p>Connecting to WebSocket server...</p>
+            </div>
+            
+            <div id="status">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">Disconnected</span>
+            </div>
+            
+            <div id="fps-counter">
+                FPS: <span class="fps-value" id="fps-value">0</span>
+            </div>
+            
+            <div id="scene-info">
+                <p>Objects: <span id="object-count">0</span></p>
+                <p>Server: <span id="server-fps">0</span> FPS</p>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div id="sidebar">
+            <h1>🚦 Traffic Dashboard</h1>
+            
+            <!-- Metrics -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="total-objects">0</div>
+                    <div class="metric-label">Total Objects</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="update-rate">0</div>
+                    <div class="metric-label">Updates/sec</div>
+                </div>
+            </div>
+            
+            <!-- Object Counts -->
+            <div class="object-counts">
+                <h3>📊 Object Breakdown</h3>
+                
+                <div class="count-item">
+                    <span><span class="icon">🚗</span> Cars</span>
+                    <span class="count" id="count-car">0</span>
+                </div>
+                <div class="count-item">
+                    <span><span class="icon">🚌</span> Buses</span>
+                    <span class="count" id="count-bus">0</span>
+                </div>
+                <div class="count-item">
+                    <span><span class="icon">🚚</span> Trucks</span>
+                    <span class="count" id="count-truck">0</span>
+                </div>
+                <div class="count-item">
+                    <span><span class="icon">🏍️</span> Motorcycles</span>
+                    <span class="count" id="count-motorcycle">0</span>
+                </div>
+                <div class="count-item">
+                    <span><span class="icon">🚲</span> Bicycles</span>
+                    <span class="count" id="count-bicycle">0</span>
+                </div>
+                <div class="count-item">
+                    <span><span class="icon">🚶</span> Pedestrians</span>
+                    <span class="count" id="count-person">0</span>
+                </div>
+            </div>
+            
+            <!-- View Controls -->
+            <div class="controls">
+                <h3>🎥 View Controls</h3>
+                
+                <div class="view-buttons">
+                    <button class="view-btn active" data-view="perspective">Perspective</button>
+                    <button class="view-btn" data-view="top_down">Top Down</button>
+                </div>
+                
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="auto-rotate" checked>
+                        Auto Rotate
+                    </label>
+                </div>
+                
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="show-grid" checked>
+                        Show Grid
+                    </label>
+                </div>
+                
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="show-trails">
+                        Show Trails
+                    </label>
+                </div>
+                
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="show-labels" checked>
+                        Show Labels
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Connection Log -->
+            <div class="controls">
+                <h3>📋 Connection Log</h3>
+                <div id="log"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // Global variables
+        let scene, camera, renderer, controls;
+        let objectsGroup = new THREE.Group();
+        let gridHelper, trailsGroup = new THREE.Group();
+        let ws = null;
+        let currentObjects = new Map(); // track_id -> object data
+        let modelCache = new Map(); // model_path -> THREE.Group
+        let lastUpdateTime = 0;
+        let updateCount = 0;
+        let currentView = 'perspective';
+
+        // Configuration
+        const CONFIG = {
+            wsUrl: 'ws://localhost:8765/ws',
+            modelsBase: '',
+            maxTrails: 20
+        };
+
+        // Initialize Three.js scene
+        function init() {
+            const container = document.getElementById('viewer-container');
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a15);
+            scene.fog = new THREE.Fog(0x0a0a15, 50, 200);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                60,
+                container.clientWidth / container.clientHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(30, 20, 30);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+            
+            // Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.5;
+            controls.maxPolarAngle = Math.PI / 2 - 0.1;
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(20, 30, 20);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.camera.left = -50;
+            directionalLight.shadow.camera.right = 50;
+            directionalLight.shadow.camera.top = 50;
+            directionalLight.shadow.camera.bottom = -50;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            const fillLight = new THREE.PointLight(0x4A90D9, 0.3);
+            fillLight.position.set(-20, 10, -20);
+            scene.add(fillLight);
+            
+            // Ground plane
+            const groundGeometry = new THREE.PlaneGeometry(100, 100);
+            const groundMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x1a1a2e,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            // Grid
+            gridHelper = new THREE.GridHelper(100, 50, 0x4A90D9, 0x333355);
+            scene.add(gridHelper);
+            
+            // Groups
+            scene.add(objectsGroup);
+            scene.add(trailsGroup);
+            
+            // Handle resize
+            window.addEventListener('resize', onWindowResize);
+            
+            // Setup controls
+            setupControls();
+            
+            // Connect to WebSocket
+            connectWebSocket();
+            
+            // Start animation loop
+            animate();
+            
+            // Hide loading
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+            }, 1000);
+            
+            log('Viewer initialized', 'info');
+        }
+
+        // WebSocket connection
+        function connectWebSocket() {
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            
+            try {
+                ws = new WebSocket(CONFIG.wsUrl);
+                
+                ws.onopen = () => {
+                    statusDot.classList.add('connected');
+                    statusText.textContent = 'Connected';
+                    log('Connected to server', 'info');
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        updateScene(data);
+                    } catch (e) {
+                        log('Error parsing message: ' + e.message, 'error');
+                    }
+                };
+                
+                ws.onclose = () => {
+                    statusDot.classList.remove('connected');
+                    statusText.textContent = 'Disconnected';
+                    log('Disconnected from server', 'warning');
+                    
+                    // Reconnect after 3 seconds
+                    setTimeout(connectWebSocket, 3000);
+                };
+                
+                ws.onerror = (error) => {
+                    log('WebSocket error', 'error');
+                };
+                
+            } catch (e) {
+                log('Connection error: ' + e.message, 'error');
+                setTimeout(connectWebSocket, 3000);
+            }
+        }
+
+        // Update scene from server data
+        function updateScene(data) {
+            const now = performance.now();
+            
+            // Update statistics
+            document.getElementById('total-objects').textContent = data.objects?.length || 0;
+            document.getElementById('object-count').textContent = data.objects?.length || 0;
+            document.getElementById('server-fps').textContent = data.fps?.toFixed(1) || '0';
+            
+            // Count by class
+            const counts = {};
+            (data.objects || []).forEach(obj => {
+                const cls = obj.class_name || 'unknown';
+                counts[cls] = (counts[cls] || 0) + 1;
+            });
+            
+            // Update UI counts
+            document.getElementById('count-car').textContent = counts.car || 0;
+            document.getElementById('count-bus').textContent = counts.bus || 0;
+            document.getElementById('count-truck').textContent = counts.truck || 0;
+            document.getElementById('count-motorcycle').textContent = counts.motorcycle || 0;
+            document.getElementById('count-bicycle').textContent = counts.bicycle || 0;
+            document.getElementById('count-person').textContent = counts.person || 0;
+            
+            // Update objects
+            const objectIds = new Set();
+            
+            (data.objects || []).forEach(objData => {
+                const trackId = objData.track_id;
+                objectIds.add(trackId);
+                
+                if (!currentObjects.has(trackId)) {
+                    // New object
+                    createObject(objData);
+                } else {
+                    // Update existing object
+                    updateObject(trackId, objData);
+                }
+            });
+            
+            // Remove objects that are no longer in the scene
+            currentObjects.forEach((obj, trackId) => {
+                if (!objectIds.has(trackId)) {
+                    removeObject(trackId);
+                }
+            });
+            
+            // Calculate update rate
+            updateCount++;
+            if (now - lastUpdateTime >= 1000) {
+                document.getElementById('update-rate').textContent = updateCount;
+                updateCount = 0;
+                lastUpdateTime = now;
+            }
+        }
+
+        // Create 3D object
+        function createObject(objData) {
+            const { track_id, class_name, position, model_path, rotation } = objData;
+            
+            // Create placeholder if no model
+            let mesh;
+            
+            if (model_path) {
+                // Load model (simplified - in production, cache models)
+                loadModel(model_path, (model) => {
+                    const clone = model.clone();
+                    clone.position.set(position.x, 0, position.z);
+                    clone.rotation.y = rotation || 0;
+                    clone.traverse(child => {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        }
+                    });
+                    objectsGroup.add(clone);
+                    currentObjects.set(track_id, { mesh: clone, data: objData });
+                });
+            } else {
+                // Create placeholder geometry based on class
+                const geometry = getPlaceholderGeometry(class_name);
+                const material = new THREE.MeshStandardMaterial({ 
+                    color: getClassColor(class_name),
+                    roughness: 0.5,
+                    metalness: 0.5
+                });
+                mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(position.x, 0, position.z);
+                mesh.rotation.y = rotation || 0;
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                objectsGroup.add(mesh);
+                currentObjects.set(track_id, { mesh, data: objData });
+            }
+            
+            // Create label
+            if (document.getElementById('show-labels').checked) {
+                createLabel(track_id, class_name, position);
+            }
+        }
+
+        // Update existing object
+        function updateObject(trackId, objData) {
+            const obj = currentObjects.get(trackId);
+            if (!obj || !obj.mesh) return;
+            
+            const { position, rotation, velocity } = objData;
+            
+            // Smooth position update
+            obj.mesh.position.x = position.x;
+            obj.mesh.position.z = position.z;
+            obj.mesh.rotation.y = rotation || 0;
+            
+            // Update trails
+            if (document.getElementById('show-trails').checked && velocity) {
+                updateTrail(trackId, objData);
+            }
+            
+            obj.data = objData;
+        }
+
+        // Remove object
+        function removeObject(trackId) {
+            const obj = currentObjects.get(trackId);
+            if (obj && obj.mesh) {
+                objectsGroup.remove(obj.mesh);
+                obj.mesh.traverse(child => {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(m => m.dispose());
+                        } else {
+                            child.material.dispose();
+                        }
+                    }
+                });
+            }
+            currentObjects.delete(trackId);
+        }
+
+        // Load GLB model
+        function loadModel(url, callback) {
+            if (modelCache.has(url)) {
+                callback(modelCache.get(url));
+                return;
+            }
+            
+            const loader = new GLTFLoader();
+            loader.load(
+                url,
+                (gltf) => {
+                    const model = gltf.scene;
+                    
+                    // Normalize model size
+                    const box = new THREE.Box3().setFromObject(model);
+                    const size = box.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 2 / maxDim;
+                    model.scale.setScalar(scale);
+                    
+                    modelCache.set(url, model);
+                    callback(model);
+                },
+                undefined,
+                (error) => {
+                    log('Error loading model: ' + url, 'error');
+                }
+            );
+        }
+
+        // Get placeholder geometry
+        function getPlaceholderGeometry(className) {
+            switch(className) {
+                case 'car':
+                    return new THREE.BoxGeometry(2, 1, 4);
+                case 'bus':
+                    return new THREE.BoxGeometry(2.5, 2.5, 10);
+                case 'truck':
+                    return new THREE.BoxGeometry(2.5, 2, 8);
+                case 'person':
+                    return new THREE.CapsuleGeometry(0.3, 1, 4, 8);
+                default:
+                    return new THREE.BoxGeometry(1, 1, 1);
+            }
+        }
+
+        // Get color by class
+        function getClassColor(className) {
+            const colors = {
+                car: 0x4A90D9,
+                bus: 0xDC4545,
+                truck: 0xE8A87C,
+                motorcycle: 0xF4C430,
+                bicycle: 0x3D8B40,
+                person: 0x87CEEB
+            };
+            return colors[className] || 0x888888;
+        }
+
+        // Create label (simplified - uses sprite)
+        function createLabel(trackId, className, position) {
+            // Could implement canvas-based text sprites here
+        }
+
+        // Update trail
+        function updateTrail(trackId, objData) {
+            // Could implement trail rendering here
+        }
+
+        // Setup controls
+        function setupControls() {
+            // View buttons
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    const view = btn.dataset.view;
+                    setView(view);
+                });
+            });
+            
+            // Checkboxes
+            document.getElementById('auto-rotate').addEventListener('change', (e) => {
+                controls.autoRotate = e.target.checked;
+            });
+            
+            document.getElementById('show-grid').addEventListener('change', (e) => {
+                gridHelper.visible = e.target.checked;
+            });
+            
+            document.getElementById('show-trails').addEventListener('change', (e) => {
+                trailsGroup.visible = e.target.checked;
+            });
+            
+            document.getElementById('show-labels').addEventListener('change', (e) => {
+                // Toggle labels visibility
+            });
+        }
+
+        // Set camera view
+        function setView(view) {
+            currentView = view;
+            
+            if (view === 'perspective') {
+                camera.position.set(30, 20, 30);
+                camera.lookAt(0, 0, 0);
+            } else if (view === 'top_down') {
+                camera.position.set(0, 50, 0);
+                camera.lookAt(0, 0, 0);
+            }
+            
+            controls.update();
+        }
+
+        // Window resize handler
+        function onWindowResize() {
+            const container = document.getElementById('viewer-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+            
+            // Update FPS
+            const fps = Math.round(1000 / (performance.now() - (window.lastFrameTime || performance.now())));
+            window.lastFrameTime = performance.now();
+            document.getElementById('fps-value').textContent = fps;
+        }
+
+        // Logging
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-${type}">${message}</span>`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+            
+            // Limit log entries
+            while (logEl.children.length > 50) {
+                logEl.removeChild(logEl.firstChild);
+            }
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
