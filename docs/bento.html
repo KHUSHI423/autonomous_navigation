@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdgeDrive3D · Intelligent Road Vision System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ══════════════════════════════════════════════
+           ROOT DESIGN TOKENS
+           ══════════════════════════════════════════════ */
+        :root {
+            --bg: #050507;
+            --card: #0c0c10;
+            --card-hover: #111118;
+            --border: rgba(255,255,255,0.06);
+            --border-hover: rgba(255,255,255,0.12);
+            --text-1: #f0f0f5;
+            --text-2: #8b8ba0;
+            --text-3: #55556a;
+            --radius: 1.5rem;
+            --gap: 10px;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+            color: var(--text-1);
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        }
+
+        .sf { font-family: 'Outfit', system-ui, sans-serif; letter-spacing: -0.03em; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* ══════════════════════════════════════════════
+           BENTO GRID — FULL VIEWPORT, NO SCROLL
+           ══════════════════════════════════════════════ */
+        .bento {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-template-rows: repeat(12, 1fr);
+            gap: var(--gap);
+            padding: var(--gap);
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* ══════════════════════════════════════════════
+           CARD BASE
+           ══════════════════════════════════════════════ */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            flex-direction: column;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity 0.4s;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .card:hover {
+            border-color: var(--border-hover);
+            transform: scale(0.985);
+            filter: brightness(1.08);
+        }
+        .card:hover::before { opacity: 1; }
+        .card:active { transform: scale(0.975); }
+
+        /* Glow variations */
+        .glow-blue::before { background: radial-gradient(ellipse at 30% 20%, rgba(59,130,246,0.08), transparent 70%); }
+        .glow-purple::before { background: radial-gradient(ellipse at 50% 30%, rgba(139,92,246,0.08), transparent 70%); }
+        .glow-green::before { background: radial-gradient(ellipse at 40% 60%, rgba(16,185,129,0.08), transparent 70%); }
+        .glow-orange::before { background: radial-gradient(ellipse at 60% 40%, rgba(245,158,11,0.08), transparent 70%); }
+        .glow-red::before { background: radial-gradient(ellipse at 50% 50%, rgba(239,68,68,0.06), transparent 70%); }
+        .glow-cyan::before { background: radial-gradient(ellipse at 30% 70%, rgba(6,182,212,0.08), transparent 70%); }
+        .glow-pink::before { background: radial-gradient(ellipse at 70% 30%, rgba(236,72,153,0.08), transparent 70%); }
+
+        /* ══════════════════════════════════════════════
+           IMAGE PLACEHOLDER SYSTEM
+           ══════════════════════════════════════════════ */
+        .img-bg {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+        }
+        .img-bg img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+        .img-bg .placeholder-info {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: 1.5px dashed rgba(255,255,255,0.08);
+            border-radius: inherit;
+            margin: 3px;
+            transition: opacity 0.4s;
+        }
+        .img-bg .placeholder-info svg {
+            width: 24px; height: 24px;
+            stroke: rgba(255,255,255,0.15);
+        }
+        .img-bg .placeholder-info span {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            color: rgba(255,255,255,0.2);
+            letter-spacing: 0.5px;
+        }
+
+        /* Overlay for text readability on images */
+        .img-overlay {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 1.25rem;
+        }
+        .img-overlay.bottom-fade {
+            background: linear-gradient(to bottom,
+                rgba(5,5,7,0.3) 0%,
+                transparent 30%,
+                transparent 50%,
+                rgba(5,5,7,0.85) 100%);
+        }
+        .img-overlay.full-fade {
+            background: linear-gradient(160deg,
+                rgba(5,5,7,0.7) 0%,
+                rgba(5,5,7,0.4) 50%,
+                rgba(5,5,7,0.8) 100%);
+        }
+
+        /* ══════════════════════════════════════════════
+           GRADIENTS
+           ══════════════════════════════════════════════ */
+        .grad-fire { background: linear-gradient(135deg, #ff6b35, #f72585, #7209b7); }
+        .grad-ocean { background: linear-gradient(135deg, #0077b6, #00b4d8, #48cae4); }
+        .grad-aurora { background: linear-gradient(135deg, #06d6a0, #118ab2, #073b4c); }
+        .grad-sunset { background: linear-gradient(135deg, #f77f00, #d62828, #003049); }
+        .grad-neon { background: linear-gradient(135deg, #7400b8, #6930c3, #5390d9, #48bfe3); }
+        .grad-mint { background: linear-gradient(135deg, #2d6a4f, #40916c, #52b788); }
+
+        /* Border gradient trick */
+        .border-grad {
+            padding: 1.5px;
+            border: none !important;
+        }
+        .border-grad > .inner {
+            background: var(--card);
+            border-radius: calc(var(--radius) - 1.5px);
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ══════════════════════════════════════════════
+           MICRO COMPONENTS
+           ══════════════════════════════════════════════ */
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 100px;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .pill-glass {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.7);
+        }
+
+        .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .dot-pulse {
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+            50% { opacity: 0.6; box-shadow: 0 0 0 4px transparent; }
+        }
+
+        .stat-block {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 0.875rem;
+            padding: 0.75rem;
+            text-align: center;
+        }
+        .stat-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 1.1rem;
+            line-height: 1.2;
+        }
+        .stat-label {
+            font-size: 9px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 2px;
+        }
+
+        /* Signal bars animation */
+        .signal-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 16px;
+        }
+        .signal-bars .bar {
+            width: 3px;
+            border-radius: 1px;
+            background: currentColor;
+            animation: signal-wave 1.5s ease-in-out infinite;
+        }
+        .signal-bars .bar:nth-child(1) { height: 4px; animation-delay: 0s; }
+        .signal-bars .bar:nth-child(2) { height: 8px; animation-delay: 0.15s; }
+        .signal-bars .bar:nth-child(3) { height: 12px; animation-delay: 0.3s; }
+        .signal-bars .bar:nth-child(4) { height: 16px; animation-delay: 0.45s; }
+        @keyframes signal-wave {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* Code inline */
+        .code-inline {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            padding: 2px 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-2);
+        }
+
+        /* Flow arrow chain */
+        .flow-chain {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .flow-node {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            color: var(--text-2);
+            white-space: nowrap;
+        }
+        .flow-arrow { color: var(--text-3); font-size: 10px; }
+
+        /* Decision zone indicator */
+        .zone-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            flex: 1;
+        }
+        .zone-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* Circular packing chart */
+        .packing-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 200px;
+        }
+        .pack-circle {
+            position: absolute;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border: 1.5px solid rgba(255,255,255,0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: default;
+        }
+        .pack-circle:hover {
+            transform: scale(1.12);
+            z-index: 20;
+            box-shadow: 0 0 30px rgba(255,255,255,0.15);
+        }
+        .pack-label {
+            position: relative;
+            z-index: 2;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(4px);
+            padding: 2px 6px;
+            border-radius: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 8px;
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* ══════════════════════════════════════════════
+           MODAL
+           ══════════════════════════════════════════════ */
+        #modal {
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease;
+        }
+        #modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-panel {
+            background: #0a0a0e;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 2rem;
+            width: 92%;
+            max-width: 880px;
+            max-height: 88vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(16px) scale(0.96);
+            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        #modal.active .modal-panel {
+            transform: translateY(0) scale(1);
+        }
+        /* Full-screen modal for demo videos */
+        #modal.demo-full .modal-panel {
+            width: 98vw;
+            max-width: 98vw;
+            height: 98vh;
+            max-height: 98vh;
+            border-radius: 1rem;
+        }
+        .modal-head {
+            padding: 2rem 2.5rem 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            flex-shrink: 0;
+        }
+        .modal-close {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            color: var(--text-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+        .modal-close:hover {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-1);
+        }
+        .modal-scroll {
+            padding: 1.5rem 2.5rem 2.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .modal-scroll::-webkit-scrollbar { width: 4px; }
+        .modal-scroll::-webkit-scrollbar-track { background: transparent; }
+        .modal-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+
+        /* Modal content blocks */
+        .m-section { margin-bottom: 1.75rem; }
+        .m-section:last-child { margin-bottom: 0; }
+        .m-section h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-1);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .m-section h3::before {
+            content: '';
+            width: 3px;
+            height: 16px;
+            border-radius: 2px;
+            background: #5b5bf0;
+            flex-shrink: 0;
+        }
+        .m-section p, .m-section li {
+            font-size: 0.8125rem;
+            color: var(--text-2);
+            line-height: 1.7;
+        }
+        .m-section ul { list-style: none; padding: 0; }
+        .m-section li { padding: 4px 0 4px 18px; position: relative; }
+        .m-section li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: #5b5bf0;
+            font-weight: 700;
+            font-size: 12px;
+        }
+        .m-code {
+            background: #08080c;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 0.875rem;
+            padding: 1rem 1.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.8;
+            color: var(--text-2);
+            overflow-x: auto;
+            white-space: pre;
+            margin: 0.5rem 0;
+            position: relative;
+        }
+        .m-code .lang-tag {
+            position: absolute;
+            top: 6px; right: 10px;
+            font-size: 8px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .m-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin: 0.5rem 0;
+        }
+        .m-table th {
+            text-align: left;
+            padding: 8px 12px;
+            background: rgba(91,91,240,0.06);
+            color: #7c7cf0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .m-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            color: var(--text-2);
+        }
+        .m-metric-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            margin: 0.75rem 0;
+        }
+        .m-metric {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .m-metric .val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #48bfe3;
+        }
+        .m-metric .lbl {
+            font-size: 9px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+        .m-badge-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin: 0.5rem 0;
+        }
+        .m-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid;
+        }
+        .m-badge-blue { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.2); color: #60a5fa; }
+        .m-badge-green { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.2); color: #34d399; }
+        .m-badge-purple { background: rgba(139,92,246,0.1); border-color: rgba(139,92,246,0.2); color: #a78bfa; }
+        .m-badge-orange { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.2); color: #fbbf24; }
+        .m-badge-cyan { background: rgba(6,182,212,0.1); border-color: rgba(6,182,212,0.2); color: #22d3ee; }
+        .m-badge-pink { background: rgba(236,72,153,0.1); border-color: rgba(236,72,153,0.2); color: #f472b6; }
+
+        .m-file-tree {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.9;
+            color: var(--text-2);
+            background: #08080c;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 0.875rem;
+            padding: 1.25rem;
+            margin: 0.5rem 0;
+        }
+        .m-file-tree .f { color: #60a5fa; }
+        .m-file-tree .py { color: #34d399; }
+        .m-file-tree .ino { color: #22d3ee; }
+        .m-file-tree .md { color: #fbbf24; }
+
+        /* Video player styling */
+        .aspect-video {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+        }
+        .aspect-video video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+
+        /* progress */
+        .m-progress { margin: 6px 0; }
+        .m-progress-head { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
+        .m-progress-head .pn { color: var(--text-2); }
+        .m-progress-head .pv { color: #48bfe3; font-family: 'JetBrains Mono', monospace; }
+        .m-progress-bar { height: 4px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
+        .m-progress-fill { height: 100%; border-radius: 10px; }
+        .fill-blue { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
+        .fill-green { background: linear-gradient(90deg, #10b981, #06b6d4); }
+        .fill-purple { background: linear-gradient(90deg, #8b5cf6, #ec4899); }
+        .fill-orange { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+
+        /* ══════════════════════════════════════════════
+           RESPONSIVE
+           ══════════════════════════════════════════════ */
+        @media (max-width: 1024px) {
+            html, body { overflow: auto; height: auto; }
+            .bento {
+                display: flex;
+                flex-direction: column;
+                height: auto;
+                gap: 8px;
+                padding: 8px;
+            }
+            .card { min-height: 180px; }
+            .modal-panel { width: 96%; border-radius: 1.5rem; }
+            .modal-head { padding: 1.5rem; }
+            .modal-scroll { padding: 1rem 1.5rem 1.5rem; }
+        }
+
+        /* Subtle entrance animation */
+        .card {
+            animation: card-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+        }
+        @keyframes card-in {
+            from { opacity: 0; transform: translateY(12px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     BENTO GRID — ONE-PAGE, FULL VIEWPORT
+     ══════════════════════════════════════════════════════ -->
+<main class="bento">
+
+    <!-- ─── C1: HERO — EdgeDrive3D (col 1-5, row 1-5) ─── -->
+    <div class="card glow-blue"
+         onclick="openModal('overview')"
+         style="grid-column: 1/6; grid-row: 1/6; animation-delay: 0.05s; padding: 0;">
+        <div class="img-bg">
+            <div class="placeholder-info">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span>background_hero.jpg</span>
+            </div>
+            <img src="background_hero.jpg" onload="this.style.opacity=1" onerror="this.style.opacity=0">
+        </div>
+        <div class="img-overlay bottom-fade justify-between">
+            <div class="flex items-center gap-2">
+                <span class="pill pill-glass">
+                    <span class="dot dot-pulse" style="background:#34d399; color:#34d399;"></span>
+                    HACKATHON 2026
+                </span>
+                <span class="pill pill-glass">v1.0.0</span>
+            </div>
+            <div>
+                <h1 class="sf text-4xl font-bold tracking-tight mb-1" style="letter-spacing:-0.04em;">EdgeDrive3D</h1>
+                <p class="text-sm text-gray-400" style="max-width: 380px;">Intelligent Vision-Based Road Analysis, Traffic Detection & 3D Mapping — on Raspberry Pi 3B+</p>
+                <div class="flex gap-2 mt-3 flex-wrap">
+                    <span class="code-inline">Pi 3B+</span>
+                    <span class="code-inline">MiDaS</span>
+                    <span class="code-inline">YOLOv11</span>
+                    <span class="code-inline">ESP32</span>
+                    <span class="code-inline">Streamlit</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── C2: VISION PIPELINE (col 6-9, row 1-3) ─── -->
+    <div class="card grad-neon border-grad glow-purple"
+         onclick="openModal('vision')"
+         style="grid-column: 6/10; grid-row: 1/4; animation-delay: 0.1s;">
+        <div class="inner p-5 flex flex-col">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                </div>
+                <div>
+                    <h2 class="sf text-lg font-bold">Vision Pipeline</h2>
+                    <p class="text-[10px] text-gray-500 mono">6 AI MODELS · PARALLEL INFERENCE</p>
+                </div>
+            </div>
+
+            <div class="flow-chain mb-3">
+                <span class="flow-node">📷 33ms</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node">🧠 Depth 50ms</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node">🎯 YOLO 30ms</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node">📐 3D 5ms</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node">🗺️ BEV</span>
+            </div>
+
+            <div class="space-y-1.5 mt-auto">
+                <div class="flex justify-between items-center bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5">
+                    <span class="text-[10px] font-bold tracking-widest text-gray-500 uppercase">YOLOv11</span>
+                    <span class="mono text-xs font-bold text-violet-300">30ms</span>
+                </div>
+                <div class="flex justify-between items-center bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5">
+                    <span class="text-[10px] font-bold tracking-widest text-gray-500 uppercase">MiDaS DPT</span>
+                    <span class="mono text-xs font-bold text-fuchsia-300">50ms</span>
+                </div>
+                <div class="flex justify-between items-center bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5">
+                    <span class="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Total Loop</span>
+                    <span class="mono text-xs font-bold text-cyan-300">~150ms</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── C3: DASHBOARD (col 10-12, row 1-2) ─── -->
+    <div class="card glow-cyan"
+         onclick="openModal('dashboard')"
+         style="grid-column: 10/13; grid-row: 1/3; animation-delay: 0.15s; padding: 0;">
+        <div class="img-bg">
+            <div class="placeholder-info">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                <span>dashboard_ui.jpg</span>
+            </div>
+            <img src="dashboard_ui.jpg" onload="this.style.opacity=1" onerror="this.style.opacity=0">
+        </div>
+        <div class="img-overlay bottom-fade justify-end">
+            <h2 class="sf text-lg font-bold">Dashboard</h2>
+            <p class="text-[11px] text-gray-400">Real-time BEV · 3D Cloud · Telemetry</p>
+        </div>
+    </div>
+
+    <!-- ─── C4: HARDWARE (col 10-12, row 3-5) ─── -->
+    <div class="card glow-orange"
+         onclick="openModal('hardware')"
+         style="grid-column: 10/13; grid-row: 3/6; animation-delay: 0.2s; padding: 0;">
+        <div class="img-bg">
+            <div class="placeholder-info">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                <span>hardware_robot.jpg</span>
+            </div>
+            <img src="hardware_robot.jpg" onload="this.style.opacity=1" onerror="this.style.opacity=0">
+        </div>
+        <div class="img-overlay full-fade justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-orange-500/80 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                </div>
+                <span class="pill pill-glass text-[9px]">3 MCUs</span>
+            </div>
+            <div>
+                <h2 class="sf text-xl font-bold mb-1">Hardware</h2>
+                <p class="text-[11px] text-gray-400 mb-2">Pi 3B+ • ESP32 • TB6612FNG • 4WD</p>
+                <div class="flex gap-1.5">
+                    <div class="stat-block flex-1">
+                        <div class="stat-val text-orange-400" style="font-size: 0.9rem;">4WD</div>
+                        <div class="stat-label">Drive</div>
+                    </div>
+                    <div class="stat-block flex-1">
+                        <div class="stat-val text-orange-400" style="font-size: 0.9rem;">7.4V</div>
+                        <div class="stat-label">Battery</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── C5: DECISION ENGINE (col 6-9, row 4-5) ─── -->
+    <div class="card grad-fire glow-red"
+         onclick="openModal('decision')"
+         style="grid-column: 6/10; grid-row: 4/6; animation-delay: 0.25s; padding: 1.25rem;">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="sf text-lg font-bold">Decision Engine</h2>
+            <span class="pill pill-glass text-[9px]">5-STATE FSM</span>
+        </div>
+        <div class="flex gap-2 flex-1">
+            <div class="zone-indicator bg-black/25 rounded-xl flex-col items-center justify-center text-center">
+                <div class="zone-dot bg-red-500" style="box-shadow: 0 0 12px rgba(239,68,68,0.6);"></div>
+                <span class="text-[10px] font-bold mt-1">STOP</span>
+                <span class="mono text-[9px] text-white/50">&lt;2m</span>
+            </div>
+            <div class="zone-indicator bg-black/25 rounded-xl flex-col items-center justify-center text-center">
+                <div class="zone-dot bg-yellow-400" style="box-shadow: 0 0 12px rgba(250,204,21,0.6);"></div>
+                <span class="text-[10px] font-bold mt-1">AVOID</span>
+                <span class="mono text-[9px] text-white/50">2-5m</span>
+            </div>
+            <div class="zone-indicator bg-black/25 rounded-xl flex-col items-center justify-center text-center">
+                <div class="zone-dot bg-green-500" style="box-shadow: 0 0 12px rgba(34,197,94,0.6);"></div>
+                <span class="text-[10px] font-bold mt-1">FORWARD</span>
+                <span class="mono text-[9px] text-white/50">&gt;5m</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── C6: STATS ROW — FPS (col 1-3, row 6-7) ─── -->
+    <div class="card glow-green"
+         onclick="openModal('metrics')"
+         style="grid-column: 1/4; grid-row: 6/8; animation-delay: 0.3s; padding: 1.25rem;">
+        <div class="flex items-center gap-3 mb-2">
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <div>
+                <h2 class="sf text-base font-bold">Performance</h2>
+                <p class="text-[10px] text-gray-500 mono">REAL-TIME METRICS</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-3 gap-1.5 mt-auto">
+            <div class="stat-block">
+                <div class="stat-val text-emerald-400">35</div>
+                <div class="stat-label">FPS</div>
+            </div>
+            <div class="stat-block">
+                <div class="stat-val text-blue-400">89%</div>
+                <div class="stat-label">Precision</div>
+            </div>
+            <div class="stat-block">
+                <div class="stat-val text-violet-400">0.78</div>
+                <div class="stat-label">mAP</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── C7: NETWORK (col 4-6, row 6-7) ─── -->
+    <div class="card glow-pink"
+         onclick="openModal('network')"
+         style="grid-column: 4/7; grid-row: 6/8; animation-delay: 0.35s; padding: 1.25rem;">
+        <div class="flex items-center gap-3 mb-2">
+            <div class="w-9 h-9 rounded-xl bg-pink-500/15 flex items-center justify-center">
+                <div class="signal-bars text-pink-400">
+                    <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                </div>
+            </div>
+            <div>
+                <h2 class="sf text-base font-bold">Network</h2>
+                <p class="text-[10px] text-gray-500 mono">UDP + HTTP · 3 NODES</p>
+            </div>
+        </div>
+        <div class="space-y-1 mt-auto">
+            <div class="flex justify-between text-[10px] bg-white/[0.03] rounded-lg px-2.5 py-2 border border-white/[0.04]">
+                <span class="text-gray-500">Pi → Laptop</span>
+                <span class="mono text-pink-300 font-bold">UDP 5ms</span>
+            </div>
+            <div class="flex justify-between text-[10px] bg-white/[0.03] rounded-lg px-2.5 py-2 border border-white/[0.04]">
+                <span class="text-gray-500">Laptop → ESP32</span>
+                <span class="mono text-pink-300 font-bold">HTTP 2ms</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── C8: ALGORITHMS (col 7-9, row 6-7) ─── -->
+    <div class="card grad-ocean glow-cyan"
+         onclick="openModal('algorithms')"
+         style="grid-column: 7/10; grid-row: 6/8; animation-delay: 0.4s; padding: 1.25rem;">
+        <h2 class="sf text-base font-bold mb-1">Algorithms</h2>
+        <p class="text-[10px] text-white/60 mb-2">Depth-YOLO Fusion · Lane Detection</p>
+        <div class="mt-auto space-y-1">
+            <div class="flex gap-1 flex-wrap">
+                <span class="code-inline" style="background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.15); color:#fff;">Canny</span>
+                <span class="code-inline" style="background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.15); color:#fff;">HoughLines</span>
+                <span class="code-inline" style="background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.15); color:#fff;">HSV Seg</span>
+                <span class="code-inline" style="background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.15); color:#fff;">Pinhole</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── C9: PROJECT FILES (col 10-12, row 6-7) ─── -->
+    <div class="card glow-blue"
+         onclick="openModal('files')"
+         style="grid-column: 10/13; grid-row: 6/8; animation-delay: 0.45s; padding: 1.25rem;">
+        <div class="flex items-center gap-3 mb-2">
+            <div class="w-9 h-9 rounded-xl bg-blue-500/15 flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+            </div>
+            <div>
+                <h2 class="sf text-base font-bold">Project Files</h2>
+                <p class="text-[10px] text-gray-500 mono">13 CLASSES · 5 MODULES</p>
+            </div>
+        </div>
+        <div class="mt-auto mono text-[10px] text-gray-500 space-y-0.5 leading-relaxed">
+            <div><span class="text-blue-400">📁</span> core/<span class="text-green-400">perception_engine.py</span></div>
+            <div><span class="text-blue-400">📁</span> hardware/<span class="text-cyan-400">hardware.ino</span></div>
+            <div><span class="text-blue-400">📁</span> dashboard/<span class="text-green-400">app.py</span></div>
+            <div><span class="text-blue-400">📁</span> config/<span class="text-green-400">settings.py</span></div>
+        </div>
+    </div>
+
+    <!-- ─── C10: POINT CLOUD (col 1-5, row 8-12) ─── -->
+    <div class="card glow-purple"
+         onclick="openModal('pointcloud')"
+         style="grid-column: 1/6; grid-row: 8/13; animation-delay: 0.5s; padding: 0;">
+        <div class="img-bg">
+            <div class="placeholder-info">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
+                <span>point_cloud.png</span>
+            </div>
+            <img src="point_cloud.png" onload="this.style.opacity=1" onerror="this.style.opacity=0">
+        </div>
+        <div class="img-overlay bottom-fade justify-between">
+            <div class="flex items-center gap-2">
+                <span class="pill pill-glass">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
+                    3D RECONSTRUCTION
+                </span>
+            </div>
+            <div>
+                <h2 class="sf text-2xl font-bold mb-1">Point Cloud</h2>
+                <p class="text-xs text-gray-400 mb-2">45,000 points per frame · PLY export · Plotly interactive 3D</p>
+                <div class="flex gap-1.5">
+                    <div class="stat-block flex-1" style="padding: 0.5rem;">
+                        <div class="stat-val text-violet-400" style="font-size:0.8rem;">45K</div>
+                        <div class="stat-label">Points</div>
+                    </div>
+                    <div class="stat-block flex-1" style="padding: 0.5rem;">
+                        <div class="stat-val text-cyan-400" style="font-size:0.8rem;">0.5-48m</div>
+                        <div class="stat-label">Depth</div>
+                    </div>
+                    <div class="stat-block flex-1" style="padding: 0.5rem;">
+                        <div class="stat-val text-pink-400" style="font-size:0.8rem;">PLY</div>
+                        <div class="stat-label">Format</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── C11: DATASET (col 6-9, row 8-10) ─── -->
+    <div class="card glow-pink"
+         onclick="openModal('dataset')"
+         style="grid-column: 6/10; grid-row: 8/11; animation-delay: 0.55s; padding: 1.25rem;">
+        <div class="flex items-center justify-between mb-1">
+            <h2 class="sf text-base font-bold">Dataset · IDD Classes</h2>
+            <span class="pill pill-glass text-[9px]">52K+ IMAGES</span>
+        </div>
+        <div class="packing-container flex-1">
+            <div class="pack-circle" style="width:70px;height:70px;top:5%;left:5%;background:#4f46e5;"><span class="pack-label">Moto 8.2k</span></div>
+            <div class="pack-circle" style="width:65px;height:65px;top:40%;left:2%;background:#6366f1;"><span class="pack-label">Rider 7.9k</span></div>
+            <div class="pack-circle" style="width:62px;height:62px;top:72%;left:18%;background:#a855f7;"><span class="pack-label">Car 7.5k</span></div>
+            <div class="pack-circle" style="width:58px;height:58px;top:55%;left:45%;background:#d946ef;"><span class="pack-label">Person 7k</span></div>
+            <div class="pack-circle" style="width:52px;height:52px;top:8%;left:42%;background:#f97316;"><span class="pack-label">Truck 5.1k</span></div>
+            <div class="pack-circle" style="width:55px;height:55px;top:25%;left:65%;background:#f43f5e;"><span class="pack-label">Auto 6.2k</span></div>
+            <div class="pack-circle" style="width:45px;height:45px;top:2%;left:75%;background:#ef4444;"><span class="pack-label">Bus 4.5k</span></div>
+            <div class="pack-circle" style="width:40px;height:40px;top:60%;left:72%;background:#eab308;"><span class="pack-label">Sign 3.8k</span></div>
+            <div class="pack-circle" style="width:32px;height:32px;top:78%;left:60%;background:#22c55e;"><span class="pack-label">Animal 2.1k</span></div>
+        </div>
+    </div>
+
+    <!-- ─── C12: VIDEO DEMO (col 6-9, row 11-12) ─── -->
+    <div class="card glow-blue"
+         onclick="openModal('demo')"
+         style="grid-column: 6/10; grid-row: 11/13; animation-delay: 0.6s; padding: 0; overflow: hidden; cursor: pointer;">
+        <video muted autoplay loop playsinline preload="metadata"
+               class="w-full h-full object-cover"
+               style="border-radius: inherit; opacity: 0.6;"
+               poster="point_cloud.png"
+               onerror="this.style.display='none'">
+            <source src="demo_video1.mp4" type="video/mp4">
+        </video>
+        <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:5;">
+            <div class="w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center mb-2">
+                <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+            <span class="pill pill-glass">
+                <span class="dot dot-pulse" style="background:#ef4444; color:#ef4444;"></span>
+                WATCH DEMOS
+            </span>
+        </div>
+    </div>
+
+    <!-- ─── C13: APPLICATIONS (col 10-12, row 8-12) ─── -->
+    <div class="card grad-mint glow-green"
+         onclick="openModal('applications')"
+         style="grid-column: 10/13; grid-row: 8/13; animation-delay: 0.65s; padding: 1.25rem;">
+        <h2 class="sf text-lg font-bold mb-1">Applications</h2>
+        <p class="text-[10px] text-white/50 mb-3">8+ DEPLOYMENT DOMAINS</p>
+        <div class="space-y-1.5 mt-auto">
+            <div class="flex items-center gap-2 bg-black/20 rounded-xl px-3 py-2">
+                <span class="text-base">🤖</span>
+                <div>
+                    <div class="text-[11px] font-bold">Autonomous Delivery</div>
+                    <div class="text-[9px] text-white/50">Campus/hospital robots</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 bg-black/20 rounded-xl px-3 py-2">
+                <span class="text-base">🛣️</span>
+                <div>
+                    <div class="text-[11px] font-bold">Road Audit System</div>
+                    <div class="text-[9px] text-white/50">Pothole & sign detection</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 bg-black/20 rounded-xl px-3 py-2">
+                <span class="text-base">♿</span>
+                <div>
+                    <div class="text-[11px] font-bold">Assistive Navigation</div>
+                    <div class="text-[9px] text-white/50">Visually impaired mobility</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 bg-black/20 rounded-xl px-3 py-2">
+                <span class="text-base">🏙️</span>
+                <div>
+                    <div class="text-[11px] font-bold">Digital Twin Mapping</div>
+                    <div class="text-[9px] text-white/50">Street-level 3D reconstruction</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 bg-black/20 rounded-xl px-3 py-2">
+                <span class="text-base">🌾</span>
+                <div>
+                    <div class="text-[11px] font-bold">Agricultural Robot</div>
+                    <div class="text-[9px] text-white/50">Crop row navigation</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL SYSTEM
+     ══════════════════════════════════════════════════════ -->
+<div id="modal" onclick="closeModal(event)">
+    <div class="modal-panel" onclick="event.stopPropagation()">
+        <div class="modal-head">
+            <div id="modal-head-content" class="flex-1"></div>
+            <button class="modal-close" onclick="closeModal(null, true)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="modal-scroll" id="modal-body"></div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   MODAL DATA — ALL DETAILED CONTENT
+   ══════════════════════════════════════════════════════ */
+const M = {
+overview: {
+    head: `<div>
+        <h2 class="sf text-2xl font-bold tracking-tight">EdgeDrive3D</h2>
+        <p class="text-sm text-gray-400 mt-1">Intelligent Vision-Based Road Analysis & 3D Mapping System</p>
+    </div>`,
+    body: `
+    <div class="m-section">
+        <h3>What Is EdgeDrive3D?</h3>
+        <p>A comprehensive autonomous perception system combining monocular depth estimation, 3D object detection, bird's-eye-view mapping, and real-time decision-making for robotic navigation in road environments. Processes video from a Raspberry Pi 3B+ camera, runs AI inference on a laptop GPU, and controls an ESP32 motor-driven robot.</p>
+    </div>
+    <div class="m-section">
+        <h3>System Architecture</h3>
+        <div class="m-code"><span class="lang-tag">ARCHITECTURE</span>
+┌─────────────┐     UDP 30fps     ┌──────────────────┐
+│ Raspberry   │  ──────────────>  │   Laptop / PC    │
+│ Pi 3B+      │    640×480 JPEG   │   (GPU Compute)  │
+│ + Webcam    │                   │   MiDaS + YOLO   │
+└──────┬──────┘                   └───────┬──────────┘
+       │                                  │ HTTP Commands
+       │                           ┌──────▼──────────┐
+       └───── UART (debug) ───────│    ESP32         │
+                                   │    Motor Control │
+                                   └─────────────────┘</div>
+    </div>
+    <div class="m-section">
+        <h3>Key Metrics</h3>
+        <div class="m-metric-row">
+            <div class="m-metric"><div class="val">28-35</div><div class="lbl">FPS</div></div>
+            <div class="m-metric"><div class="val">6</div><div class="lbl">AI Models</div></div>
+            <div class="m-metric"><div class="val">89%</div><div class="lbl">Precision</div></div>
+            <div class="m-metric"><div class="val">~150ms</div><div class="lbl">Latency</div></div>
+        </div>
+    </div>
+    <div class="m-section">
+        <h3>Technology Stack</h3>
+        <div class="m-badge-row">
+            <span class="m-badge m-badge-green">Python 3.10+</span>
+            <span class="m-badge m-badge-purple">PyTorch</span>
+            <span class="m-badge m-badge-green">OpenCV 4.8+</span>
+            <span class="m-badge m-badge-orange">Ultralytics YOLO</span>
+            <span class="m-badge m-badge-cyan">Streamlit</span>
+            <span class="m-badge m-badge-blue">Plotly</span>
+            <span class="m-badge m-badge-cyan">Open3D</span>
+            <span class="m-badge m-badge-green">Arduino C++</span>
+        </div>
+    </div>
+    <div class="m-section">
+        <h3>The Problem We Solve</h3>
+        <p>Autonomous navigation in unstructured environments — especially Indian road conditions — requires expensive LiDAR or high-end GPUs. High traffic density, unpredictable obstacles (auto-rickshaws, cows, pedestrians), and poor/absent lane markings make this extremely challenging. EdgeDrive3D proves that sophisticated perception is achievable with a commodity webcam and hardware.</p>
+    </div>`
+},
+
+vision: {
+    head: `<div>
+        <h2 class="sf text-2xl font-bold tracking-tight">AI Vision Pipeline</h2>
+        <p class="text-sm text-gray-400 mt-1">6 ML models running in parallel — from raw pixels to 3D understanding</p>
+    </div>`,
+    body: `
+    <div class="m-section">
+        <h3>Pipeline Flow</h3>
+        <div class="m-code"><span class="lang-tag">PIPELINE</span>
+Frame Capture (33ms)  →  UDP Transmission (5ms)  →  JPEG Decode (10ms)
+                                    ↓
+              ┌─────────── Parallel Inference ───────────┐
+              │  MiDaS Depth Estimation (~50ms)          │
+              │  YOLOv11 Object Detection (~30ms)        │
+              └──────────────────────────────────────────┘
+                                    ↓
+              3D Position Estimation (5ms)  →  BEV Generation (5ms)
+                                    ↓
+              Decision Making (1ms)  →  Motor Command (5ms)
+              ─────────────────────────────────────────────
+              TOTAL: ~150ms end-to-end (6-7 FPS real-time)</div>
+    </div>
+    <div class="m-section">
+        <h3>MiDaS Depth Estimation</h3>
+        <p>Intel's Dense Prediction Transformer (DPT-Hybrid) processes single RGB frames into dense relative depth maps. Zero-shot cross-dataset transfer — works on ANY scene without fine-tuning. Enables monocular depth estimation without expensive sensors.</p>
+        <table class="m-table">
+            <tr><th>Model</th><th>Size</th><th>Speed</th><th>Accuracy</th></tr>
+            <tr><td>MiDaS Small</td><td>8MB</td><td>60 FPS</td><td>Good</td></tr>
+            <tr><td><strong>MiDaS Hybrid ✓</strong></td><td>45MB</td><td>30 FPS</td><td>Better</td></tr>
+            <tr><td>MiDaS Large</td><td>130MB</td><td>15 FPS</td><td>Best</td></tr>
+            <tr><td>Depth Anything V2</td><td>98MB</td><td>25 FPS</td><td>Best</td></tr>
+        </table>
+    </div>
+    <div class="m-section">
+        <h3>YOLOv8/v11 Object Detection</h3>
+        <p>State-of-the-art real-time detection with 80 COCO classes. CSPDarknet backbone → PAN-FPN neck → Decoupled detection heads → NMS post-processing.</p>
+        <div class="m-progress">
+            <div class="m-progress-head"><span class="pn">mAP@0.5</span><span class="pv">78.2%</span></div>
+            <div class="m-progress-bar"><div class="m-progress-fill fill-blue" style="width:78%"></div></div>
+        </div>
+        <div class="m-progress">
+            <div class="m-progress-head"><span class="pn">Precision</span><span class="pv">89.1%</span></div>
+            <div class="m-progress-bar"><div class="m-progress-fill fill-green" style="width:89%"></div></div>
+        </div>
+        <div class="m-progress">
+            <div class="m-progress-head"><span class="pn">Recall</span><span class="pv">84.3%</span></div>
+            <div class="m-progress-bar"><div class="m-progress-fill fill-purple" style="width:84%"></div></div>
+        </div>
+        <div class="m-code"><span class="lang-tag">Python</span>
+from ultralytics import YOLO
+
+model = YOLO('yolov8m.pt')
+results = model(image, conf=0.4, device='cuda')[0]
+
+for box in results.boxes:
+    cls = int(box.cls[0])
+    conf = float(box.conf[0])
+    bbox = box.xyxy[0].cpu().numpy()
+    name = results.names[cls]</div>
+    </div>
+    <div class="m-section">
+        <h3>3D Bounding Box & BEV</h3>
+        <p>2D detections are projected to 3D world coordinates using the pinhole camera model (focal length + depth). The BEV mapper then transforms all 3D objects into a top-down bird's-eye-view with SVG icons per class, grid overlay, and ego vehicle marker.</p>
+    </div>
+    <div class="m-section">
+        <h3>Scale Calibration Trick</h3>
+        <p>MiDaS outputs <em>relative</em> depth. We calibrate using known object sizes — traffic signs have standard dimensions (stop sign = 600mm). By comparing pixel size to known real size at detected depth, we anchor the entire depth scale to real-world meters.</p>
+    </div>`
+},
+
+dashboard: {
+    head: `<div>
+        <h2 class="sf text-2xl font-bold tracking-tight">Streamlit Dashboard</h2>
+        <p class="text-sm text-gray-400 mt-1">Real-time monitoring, 3D visualization, and manual override controls</p>
+    </div>`,
+    body: `
+    <div class="m-section">
+        <h3>Dashboard Layout</h3>
+        <div class="m-code"><span class="lang-tag">UI LAYOUT</span>
+┌──────────────────────────────────────────────────┐
+│ ⚡28 FPS │ 🎯5 Objects │ ⚙️FORWARD │ ⏱️245s     │
+├──────────────────────────────────────────────────┤
+│ [🎥 Live Detection]       [🌈 Depth Map]        │
+│ [🗺️ BEV Map + SVG Icons]  [💎 3D Point Cloud]   │
+│ [📋 Distance Data List]   [📈 FPS/Object Graphs]│
+└──────────────────────────────────────────────────┘</div>
+    </div>
+    <div class="m-section">
+        <h3>Visualization Panels</h3>
+        <table class="m-table">
+            <tr><th>Panel</th><th>Technology</th><th>Update Rate</th></tr>
+            <tr><td>Live Detection Feed</td><td>OpenCV → Streamlit</td><td>~30fps</td></tr>
+            <tr><td>Depth Map Overlay</td><td>TURBO colormap, α=0.4</td><td>~30fps</td></tr>
+            <tr><td>BEV Map (SVG Icons)</td><td>Custom SVG renderer</td><td>~30fps</td></tr>
+            <tr><td>3D Point Cloud</td><td>Plotly Scatter3D</td><td>~5fps</td></tr>
+            <tr><td>Distance Data List</td><td>Streamlit table</td><td>~30fps</td></tr>
+            <tr><td>Performance Graphs</td><td>Plotly line charts</td><td>~10fps</td></tr>
+        </table>
+    </div>
+    <div class="m-section">
+        <h3>Interactive Controls</h3>
+        <ul>
+            <li>Mode selection: Demo / Webcam / Pi Stream / Image / Video</li>
+            <li>Confidence threshold slider (0.1 - 1.0)</li>
+            <li>Model selection (YOLOv8n / m / l)</li>
+            <li>Manual motor override buttons (↑↓←→ Stop)</li>
+            <li>Snapshot capture + video recording</li>
+            <li>Point cloud PLY export</li>
+        </ul>
+    </div>`
+},
+
+hardware: {
+    head: `<div>
+        <h2 class="sf text-2xl font-bold tracking-tight">Hardware Architecture</h2>
+        <p class="text-sm text-gray-400 mt-1">Three-node distributed system: Edge capture → GPU inference → Motor control</p>
+    </div>`,
+    body: `
+    <div class="m-section">
+        <h3>System Components</h3>
+        <table class="m-table">
+            <tr><th>Component</th><th>Qty</th><th>Role</th></tr>
+            <tr><td>Raspberry Pi 3B+</td><td>1</td><td>Video Capture + UDP Stream</td></tr>
+            <tr><td>ESP32 DevKit V1</td><td>1</td><td>WiFi AP + HTTP Motor Control</td></tr>
+            <tr><td>USB Webcam (VGA)</td><td>1</td><td>640×480 @ 30fps Capture</td></tr>
+            <tr><td>TB6612FNG Motor Driver</td><td>1</td><td>Dual H-Bridge PWM Control</td></tr>
+            <tr><td>DC Geared Motors (100RPM)</td><td>4</td><td>4WD Differential Drive</td></tr>
+            <tr><td>Wheels (65mm)</td><td>4</td><td>Traction</td></tr>
+            <tr><td>18650 Li-ion Batteries</td><td>4</td><td>7.4V 5000mAh (2S2P)</td></tr>
+            <tr><td>LM7805 Regulators</td><td>2</td><td>5V for Pi + ESP32</td></tr>
+            <tr><td>Acrylic Chassis</td><td>1</td><td>4-Layer Platform</td></tr>
+        </table>
+    </div>
+    <div class="m-section">
+        <h3>Wiring Diagram</h3>
+        <div class="m-code"><span class="lang-tag">WIRING</span>
+ESP32 GPIO → TB6612FNG Motor Driver:
+  GPIO 26 → AIN1    (Motor A direction 1)
+  GPIO 27 → AIN2    (Motor A direction 2)
+  GPIO 25 → PWMA    (Motor A speed, 0-255)
+  GPIO 14 → BIN1    (Motor B direction 1)
+  GPIO 13 → BIN2    (Motor B direction 2)
+  GPIO 33 → PWMB    (Motor B speed, 0-255)
+  GPIO 32 → STBY    (Standby, HIGH = enable)
+
+Power Distribution:
+  7.4V Battery → LM7805 #1 → Raspberry Pi (5V, 2.5A)
+  7.4V Battery → LM7805 #2 → ESP32 (5V, 500mA)
+  7.4V Battery → TB6612FNG VM → Motors (direct)</div>
+    </div>
+    <div class="m-section">
+        <h3>Raspberry Pi 3B+ Specs</h3>
+        <div class="m-metric-row">
+            <div class="m-metric"><div class="val">1.4GHz</div><div class="lbl">Quad ARM</div></div>
+            <div class="m-metric"><div class="val">1GB</div><div class="lbl">LPDDR2</div></div>
+            <div class="m-metric"><div class="val">2.5W</div><div class="lbl">Power</div></div>
+            <div class="m-metric"><div class="val">WiFi</div><div class="lbl">2.4/5GHz</div></div>
+        </div>
+        <p>Runs headless Raspberry Pi OS Lite (64-bit). Only job: capture frames + stream UDP. No ML inference on Pi — keeps it lightweight and cool (45-55°C).</p>
+    </div>
+    <div class="m-section">
+        <h3>ESP32 HTTP API</h3>
+        <table class="m-table">
+            <tr><th>Endpoint</th><th>Method</th><th>Action</th></tr>
+            <tr><td>/forward</td><td>GET</td><td>Both motors forward</td></tr>
+            <tr><td>/backward</td><td>GET</td><td>Both motors reverse</td></tr>
+            <tr><td>/left</td><td>GET</td><td>Differential turn left</td></tr>
+            <tr><td>/right</td><td>GET</td><td>Differential turn right</td></tr>
+            <tr><td>/stop</td><td>GET</td><td>Emergency stop</td></tr>
+            <tr><td>/speed?value=N</td><td>GET</td><td>Set PWM (0-255)</td></tr>
+            <tr><td>/auto_command</td><td>GET</td><td>AI navigation command</td></tr>
+        </table>
+    </div>`
+},
+
+decision: {
+    head: `<div>
+        <h2 class="sf text-2xl font-bold tracking-tight">Decision Engine</h2>
+        <p class="text-sm text-gray-400 mt-1">5-state FSM with interpretable, rule-based navigation logic</p>
+    </div>`,
+    body: `
+    <div class="m-section">
+        <h3>Decision Hierarchy</h3>
+        <table class="m-table">
+            <tr><th>Priority</th><th>Condition</th><th>Action</th><th>Speed</th></tr>
+            <tr><td style="color:#ef4444">● CRITICAL</td><td>Object &lt; 2m</td><td>STOP</td><td>0</td></tr>
+            <tr><td style="color:#eab308">● WARNING</td><td>Object 2-5m</td><td>AVOID</td><td>50-100</td></tr>
+            <tr><td style="color:#22c55e">● CAUTION</td><td>Traffic sign</td><td>COMPLY</td><td>Variable</td></tr>
+            <tr><td style="color:#22c55e">● NORMAL</td><td>Clear path</td><td>FORWARD</td><td>180</td></tr>
+        </table>
+    </div>
+    <div class="m-section">
+        <h3>State Machine</h3>
+        <div class="m-code"><span class="lang-tag">FSM</span>
+         ┌──────────────────────────────────────┐
+         │                                      │
+    ┌────▼────┐   Start   ┌─────────┐          │
+    │  IDLE   │──────────>│ MOVING  │          │
+    └────┬────┘           └────┬────┘          │
+         │                     │                │
+         │  Obstacle 2-5m      │                │
+         │                ┌────▼─────┐          │
+         │                │ AVOIDING │──────────┘
+         │                └────┬─────┘  Clear
+         │                     │
+         │  Obstacle <5m       │ <2m
+         │                ┌────▼─────┐
+         └───────────────>│ STOPPED  │
+                          └────┬─────┘
+                               │ <1m
+                          ┌────▼──────┐
+                          │ EMERGENCY │
+                          └───────────┘</div>
+    </div>
+    <div class="m-section">
+        <h3>Spatial Avoidance Logic</h3>
+        <ul>
+            <li><strong>Object X &lt; -1.0m (left):</strong> Steer RIGHT to avoid</li>
+            <li><strong>Object X &gt; +1.0m (right):</strong> Steer LEFT to avoid</li>
+            <li><strong>Object centered (|X| &lt; 1.0m):</strong> Full STOP</li>
+        </ul>
+        <p>Every decision includes a human-readable reason string: <code class="m-badge m-badge-blue" style="font-size:10px">"obstacle_too_close: person at 3.2m"</code> — no black-box behavior.</p>
+    </div>`
+},
+
+metrics: {
+    head: `<div>
+        <h2 class="sf text-2xl font-bold tracking-tight">Performance Metrics</h2>
+        <p class="text-sm text-gray-400 mt-1">AI accuracy, system latency, and hardware utilization</p>
+    </div>`,
+    body: `
+    <div class="m-section">
+        <h3>AI Performance</h3>
+        <div class="m-metric-row">
+            <div class="m-metric"><div class="val">0.78</div><div class="lbl">mAP@0.5</div></div>
+            <div class="m-metric"><div class="val">89%</div><div class="lbl">Precision</div></div>
+            <div class="m-metric"><div class="val">84%</div><div class="lbl">Recall</div></div>
+            <div class="m-metric"><div class="val">85ms</div><div class="lbl">Det. Latency</div></div>
+        </div>
+    </div>
+    <div class="m-section">
+        <h3>Latency Breakdown</h3>
+        <div class="m-progress"><div class="m-progress-head"><span class="pn">Frame Capture</span><span class="pv">33ms</span></div><div class="m-progress-bar"><div class="m-progress-fill fill-blue" style="width:22%"></div></div></div>
+        <div class="m-progress"><div class="m-progress-head"><span class="pn">UDP Transmission</span><span class="pv">5ms</span></div><div class="m-progress-bar"><div class="m-progress-fill fill-green" style="width:3%"></div></div></div>
+        <div class="m-progress"><div class="m-progress-head"><span class="pn">MiDaS Depth</span><span class="pv">50ms</span></div><div class="m-progress-bar"><div class="m-progress-fill fill-purple" style="width:33%"></div></div></div>
+        <div class="m-progress"><div class="m-progress-head"><span class="pn">YOLO Detection</span><span class="pv">30ms</span></div><div class="m-progress-bar"><div class="m-progress-fill fill-blue" style="width:20%"></div></div></div>
+        <div class="m-progress"><div class="m-progress-head"><span class="pn">3D + BEV + Decision</span><span class="pv">11ms</span></div><div class="m-progress-bar"><div class="m-progress-fill fill-green" style="width:7%"></div></div></div>
+        <div class="m-progress"><div class="m-progress-head"><span class="pn">Visualization</span><span class="pv">10ms</span></div><div class="m-progress-bar"><div class="m-progress-fill fill-orange" style="width:7%"></div></div></div>
+    </div>
+    <div class="m-section">
+        <h3>Hardware Utilization</h3>
+        <table class="m-table">
+            <tr><th>Component</th><th>Power</th><th>Temp</th><th>Utilization</th></tr>
+            <tr><td>Raspberry Pi 3B+</td><td>2.5W</td><td>45-55°C</td><td>80-100%</td></tr>
+            <tr><td>ESP32</td><td>0.5W</td><td>35-45°C</td><td>20-40%</td></tr>
+            <tr><td>Laptop GPU</td><td>80W</td><td>65-75°C</td><td>65-80%</td></tr>
+            <tr><td>RAM Usage</td><td>-</td><td>-</td><td>2.5 GB</td></tr>
+        </table>
+    </div>
+    <div class="m-section">
+        <h3>Model Configurations</h3>
+        <table class="m-table">
+            <tr><th>Preset</th><th>YOLO</th><th>Depth</th><th>FPS</th></tr>
+            <tr><td>⚡ Fast</td><td>YOLOv8n</td><td>MiDaS Small</td><td>45</td></tr>
+            <tr><td>⚖️ <strong>Balanced ✓</strong></td><td>YOLOv8m</td><td>MiDaS Hybrid</td><td>28</td></tr>
+            <tr><td>🎯 Accurate</td><td>YOLOv8l</td><td>MiDaS Large</td><td>15</td></tr>
+        </table>
+    </div>`
+},
+
+network: {
+    head: `<div>
+        <h2 class="sf text-2xl font-bold tracking-tight">Communication Architecture</h2>
+        <p class="text-sm text-gray-400 mt-1">UDP streaming + HTTP REST — the nervous system</p>
+    </div>`,
+    body: `
+    <div class="m-section">
+        <h3>Network Topology</h3>
+        <div class="m-code"><span class="lang-tag">TOPOLOGY</span>
+┌─────────────────┐              ┌─────────────────┐
+│  Raspberry Pi   │              │     Laptop      │
+│ 192.168.1.100   │◄──── WiFi ──►  192.168.1.50   │
+│  (UDP Sender)   │    LAN       │ (UDP Receiver)  │
+└─────────────────┘              └───────┬─────────┘
+                                         │ WiFi (ESP32 AP)
+                                  ┌──────▼────────┐
+                                  │    ESP32       │
+                                  │ 192.168.4.1    │
+                                  │ (HTTP Server)  │
+                                  └────────────────┘</div>
+    </div>
+    <div class="m-section">
+        <h3>UDP Video Streaming (Pi → Laptop)</h3>
+        <p>JPEG compressed frames with 4-byte length header. UDP chosen over TCP for lower latency — no ACK overhead, acceptable ~5% frame loss in real-time video.</p>
+        <div class="m-code"><span class="lang-tag">PACKET</span>
+┌──────────────────┬─────────────────────────────────┐
+│ Size (4 bytes)   │ JPEG Data (variable)            │
+│ Little-endian    │ Quality: 80%                    │
+│ uint32           │ Typical: 15-40 KB               │
+└──────────────────┴─────────────────────────────────┘</div>
+        <div class="m-metric-row">
+            <div class="m-metric"><div class="val">5-10ms</div><div class="lbl">Latency</div></div>
+            <div class="m-metric"><div class="val">30fps</div><div class="lbl">Frame Rate</div></div>
+            <div class="m-metric"><div class="val">&lt;5%</div><div class="lbl">Packet Loss</div></div>
+            <div class="m-metric"><div class="val">~1Mbps</div><div class="lbl">Bandwidth</div></div>
+        </div>
+    </div>
+    <div class="m-section">
+        <h3>HTTP Motor Control (Laptop → ESP32)</h3>
+        <p>Stateless GET requests to ESP32 running as WiFi Access Point. Simple, debuggable (test in any browser), and reliable for discrete motor commands.</p>
+        <div class="m-code"><span class="lang-tag">HTTP</span>
+GET /forward             → Both motors forward
+GET /backward            → Both motors reverse
+GET /left                → Differential turn left
+GET /right               → Differential turn right
+GET /stop                → Emergency stop
+GET /speed?value=180     → Set PWM speed (0-255)
+GET /auto_command?action=forward&speed=180</div>
+    </div>`
+},
+
+algorithms: {
+    head: `<div>
+        <h2 class="sf text-2xl font-bold tracking-tight">Algorithms & Processing</h2>
+        <p class="text-sm text-gray-400 mt-1">Depth-YOLO fusion, lane detection, obstacle avoidance, and 3D estimation</p>
+    </div>`,
+    body: `
+    <div class="m-section">
+        <h3>Road Surface Detection</h3>
+        <p>Dual-method approach: HSV color segmentation (gray asphalt mask) + Canny edge detection with Hough Line Transform. Morphological operations clean noise. Perspective transform maps trapezoid view to flat plane.</p>
+        <div class="m-badge-row">
+            <span class="m-badge m-badge-green">HSV Segmentation</span>
+            <span class="m-badge m-badge-blue">Canny Edge</span>
+            <span class="m-badge m-badge-purple">HoughLinesP</span>
+            <span class="m-badge m-badge-orange">Morphological Ops</span>
+            <span class="m-badge m-badge-cyan">Perspective Warp</span>
+        </div>
+    </div>
+    <div class="m-section">
+        <h3>Obstacle Detection Fusion</h3>
+        <table class="m-table">
+            <tr><th>Method</th><th>Strength</th><th>Weakness</th></tr>
+            <tr><td>Depth-Only</td><td>Detects ANY close object</td><td>No classification</td></tr>
+            <tr><td>YOLO-Only</td><td>Classification + class-specific safety</td><td>Misses unknown objects</td></tr>
+            <tr><td><strong>Fusion ✓</strong></td><td>Best of both — robust + smart</td><td>Slightly more compute</td></tr>
+        </table>
+        <p style="margin-top:8px">YOLO detections enriched with median depth from ROI. Depth-only obstacles trigger generic safety stops. YOLO-classified objects get class-specific safety distances (person=3m, car=5m).</p>
+    </div>
+    <div class="m-section">
+        <h3>3D Position Estimation</h3>
+        <div class="m-code"><span class="lang-tag">MATH</span>
+Pinhole Camera Model:
+  X_3D = (u - cx) × Z / fx
+  Y_3D = (v - cy) × Z / fy
+  Z_3D = Z (median depth in bounding box ROI)
+
+Where:
+  u, v  = pixel center of detection
+  cx,cy = principal point (320, 240)
+  fx,fy = focal length (~500 pixels)
+  Z     = depth from MiDaS (calibrated)</div>
+    </div>
+    <div class="m-section">
+        <h3>Traffic Sign Recognition</h3>
+        <p>Leverages YOLOv8 pre-trained COCO classes (stop sign, traffic light) + transfer learning on GTSRB (43 German classes) + Indian-specific signs. Supports regulatory, warning, and informational categories.</p>
+    </div>`
+},
+
+pointcloud: {
+    head: `<div>
+        <h2 class="sf text-2xl font-bold tracking-tight">3D Point Cloud Reconstruction</h2>
+        <p class="text-sm text-gray-400 mt-1">Dense 3D environment mapping from RGB + monocular depth</p>
+    </div>`,
+    body: `
+    <div class="m-section">
+        <h3>Generation Process</h3>
+        <div class="m-code"><span class="lang-tag">Python</span>
+# For each pixel (u, v) with valid depth Z:
+X = (u - cx) * Z / fx
+Y = (v - cy) * Z / fy
+points_3d.append([X, Y, Z])
+colors.append(image[v, u])  # RGB color from original frame
+
+# Downsample for real-time: every 4th pixel
+# 640*480 / 16 = ~19,200 points (fast mode)
+# Full resolution: ~45,000 valid points</div>
+    </div>
+    <div class="m-section">
+        <h3>Output Statistics</h3>
+        <div class="m-metric-row">
+            <div class="m-metric"><div class="val">45,230</div><div class="lbl">Points/Frame</div></div>
+            <div class="m-metric"><div class="val">0.5-48m</div><div class="lbl">Depth Range</div></div>
+            <div class="m-metric"><div class="val">PLY</div><div class="lbl">Export Format</div></div>
+            <div class="m-metric"><div class="val">3.2 MB</div><div class="lbl">File Size</div></div>
+        </div>
+    </div>
+    <div class="m-section">
+        <h3>Visualization</h3>
+        <p>Interactive Plotly 3D scatter plot with Viridis height-based coloring. 3D bounding box wireframes overlay detected objects. Users can orbit, zoom, and pan. Compatible with Open3D, MeshLab, CloudCompare, and Blender via PLY export.</p>
+    </div>`
+},
+
+dataset: {
+    head: `<div>
+        <h2 class="sf text-2xl font-bold tracking-tight">Dataset · IDD Class Distribution</h2>
+        <p class="text-sm text-gray-400 mt-1">Indian Driving Dataset — 52,000+ annotated images for urban driving</p>
+    </div>`,
+    body: `
+    <div class="m-section">
+        <h3>About IDD</h3>
+        <p>The Indian Driving Dataset (IDD) captures the unique challenges of driving in India: high traffic density, mixed vehicle types (auto-rickshaws, motorcycles, trucks), unpredictable obstacles (pedestrians, animals), and poor lane markings. This is the primary benchmark for training and evaluating EdgeDrive3D's detection models.</p>
+    </div>
+    <div class="m-section">
+        <h3>Class Distribution</h3>
+        <table class="m-table">
+            <tr><th>Class</th><th>Images</th><th>% of Dataset</th><th>Difficulty</th></tr>
+            <tr><td>🏍️ Motorcycle</td><td>8,200</td><td>15.8%</td><td>High (small, fast)</td></tr>
+            <tr><td>🧑 Rider</td><td>7,900</td><td>15.2%</td><td>High (occluded)</td></tr>
+            <tr><td>🚗 Car</td><td>7,500</td><td>14.4%</td><td>Medium</td></tr>
+            <tr><td>🚶 Person</td><td>7,000</td><td>13.5%</td><td>High (unpredictable)</td></tr>
+            <tr><td>🛺 Auto-rickshaw</td><td>6,200</td><td>11.9%</td><td>India-specific</td></tr>
+            <tr><td>🚛 Truck</td><td>5,100</td><td>9.8%</td><td>Medium (large)</td></tr>
+            <tr><td>🚌 Bus</td><td>4,500</td><td>8.7%</td><td>Medium</td></tr>
+            <tr><td>🚦 Traffic Sign</td><td>3,800</td><td>7.3%</td><td>High (faded/missing)</td></tr>
+            <tr><td>🐄 Animal</td><td>2,100</td><td>4.0%</td><td>Very High (rare)</td></tr>
+        </table>
+    </div>
+    <div class="m-section">
+        <h3>Additional Datasets Used</h3>
+        <div class="m-badge-row">
+            <span class="m-badge m-badge-blue">COCO (80 classes)</span>
+            <span class="m-badge m-badge-green">KITTI (driving)</span>
+            <span class="m-badge m-badge-purple">GTSRB (43 signs)</span>
+            <span class="m-badge m-badge-orange">RDD2022 (road damage)</span>
+        </div>
+    </div>`
+},
+
+files: {
+    head: `<div>
+        <h2 class="sf text-2xl font-bold tracking-tight">Project Structure</h2>
+        <p class="text-sm text-gray-400 mt-1">Complete codebase — every module, class, and function</p>
+    </div>`,
+    body: `
+    <div class="m-section">
+        <h3>File Tree</h3>
+        <div class="m-file-tree">
+<span class="f">📁 combined_proj_folder/</span>
+├── <span class="py">📄 main.py</span>                          <span style="color:var(--text-3)"># CLI entry point</span>
+├── <span class="md">📄 README.md</span>                        <span style="color:var(--text-3)"># Project overview</span>
+├── <span class="md">📄 requirements.txt</span>                 <span style="color:var(--text-3)"># Python dependencies</span>
+│
+├── <span class="f">📁 core/</span>
+│   ├── <span class="py">📄 perception_engine.py</span>         <span style="color:var(--text-3)"># 5 classes</span>
+│   └── <span class="py">📄 __init__.py</span>
+│
+├── <span class="f">📁 hardware/</span>
+│   ├── <span class="py">📄 hardware_integration.py</span>      <span style="color:var(--text-3)"># 3 classes</span>
+│   ├── <span class="ino">📄 hardware.ino</span>                 <span style="color:var(--text-3)"># ESP32 Arduino</span>
+│   └── <span class="py">📄 pi_sender.py</span>                 <span style="color:var(--text-3)"># Pi UDP sender</span>
+│
+├── <span class="f">📁 dashboard/</span>
+│   └── <span class="py">📄 app.py</span>                       <span style="color:var(--text-3)"># Streamlit UI</span>
+│
+├── <span class="f">📁 config/</span>
+│   └── <span class="py">📄 settings.py</span>                  <span style="color:var(--text-3)"># Config dataclasses</span>
+│
+└── <span class="f">📁 output/</span>
+    ├── <span class="f">📁 recordings/</span>    <span class="f">📁 snapshots/</span>
+    ├── <span class="f">📁 pointclouds/</span>   <span class="f">📁 maps/</span></div>
+    </div>
+    <div class="m-section">
+        <h3>Module Summary</h3>
+        <table class="m-table">
+            <tr><th>File</th><th>Classes</th><th>Purpose</th></tr>
+            <tr><td>perception_engine.py</td><td>5</td><td>DepthEstimator, ObjectDetector3D, BEVMapper, DecisionMaker, PerceptionEngine</td></tr>
+            <tr><td>hardware_integration.py</td><td>3</td><td>PiCameraSender, LaptopReceiver, ESP32Controller</td></tr>
+            <tr><td>app.py</td><td>6</td><td>SVGIcons, MetricCards, BEVVisualizer, PointCloud3D, AnalyticsChart, DetectionList</td></tr>
+            <tr><td>hardware.ino</td><td>-</td><td>WiFi AP, HTTP server, motor PWM control, 7 endpoints</td></tr>
+            <tr><td>settings.py</td><td>4</td><td>PerceptionConfig, HardwareConfig, VisualizationConfig, PresetConfigs</td></tr>
+        </table>
+        <div class="m-metric-row" style="margin-top:1rem">
+            <div class="m-metric"><div class="val">13</div><div class="lbl">Classes</div></div>
+            <div class="m-metric"><div class="val">5</div><div class="lbl">Modules</div></div>
+            <div class="m-metric"><div class="val">4</div><div class="lbl">Python</div></div>
+            <div class="m-metric"><div class="val">1</div><div class="lbl">Arduino</div></div>
+        </div>
+    </div>`
+},
+
+applications: {
+    head: `<div>
+        <h2 class="sf text-2xl font-bold tracking-tight">Real-World Applications</h2>
+        <p class="text-sm text-gray-400 mt-1">8+ deployment domains — from educational robots to smart city infrastructure</p>
+    </div>`,
+    body: `
+    <div class="m-section">
+        <h3>Deployment Domains</h3>
+    </div>
+    <div class="m-section" style="margin-bottom:1rem">
+        <h3>🤖 Autonomous Delivery Robot</h3>
+        <p>Campus/hospital delivery robot navigating hallways, avoiding pedestrians, delivering packages. Full EdgeDrive3D stack for autonomous navigation.</p>
+    </div>
+    <div class="m-section" style="margin-bottom:1rem">
+        <h3>🛣️ Smart Road Audit System</h3>
+        <p>Mount Pi+camera on any vehicle. Drive your commute. Automatically detect potholes, faded signs, road damage. Generate GPS-tagged municipality reports. India loses ₹1.5 lakh crore/year to bad roads — 3,564 pothole deaths in 2023.</p>
+    </div>
+    <div class="m-section" style="margin-bottom:1rem">
+        <h3>♿ Assistive Navigation (BlindSpot)</h3>
+        <p>Wearable chest-mounted system for visually impaired. Audio narration via bone conduction: "Stop sign 5m ahead. Pothole 2m, center of path." Same detection pipeline, different output modality.</p>
+    </div>
+    <div class="m-section" style="margin-bottom:1rem">
+        <h3>🏙️ Street-Level Digital Twin</h3>
+        <p>Generate 3D point cloud maps of any street for urban planning, construction, and city infrastructure management. Export PLY format for professional use.</p>
+    </div>
+    <div class="m-section" style="margin-bottom:1rem">
+        <h3>🌾 Agricultural Row-Following Robot</h3>
+        <p>Replace lane detection with crop-row detection. Robot follows planting rows, monitors crop health. Depth estimation measures crop height.</p>
+    </div>
+    <div class="m-section" style="margin-bottom:1rem">
+        <h3>🏥 Hospital Logistics</h3>
+        <p>Autonomous medicine/sample delivery between departments. Navigates corridors, avoids staff and patients. 24/7 operation without human couriers.</p>
+    </div>
+    <div class="m-section" style="margin-bottom:1rem">
+        <h3>📚 Educational ADAS Platform</h3>
+        <p>Complete curriculum for teaching autonomous driving: perception, decision-making, control systems, embedded programming. Accessible hardware for students.</p>
+    </div>
+    <div class="m-section">
+        <h3>🚧 Construction Safety Monitor</h3>
+        <p>Stationary/mobile unit monitoring construction zones: workers without helmets (YOLO), unauthorized vehicles, zone boundary violations. Real-time alerts.</p>
+    </div>`
+},
+
+demo: {
+    head: `<div class="flex-1">
+        <h2 class="sf text-2xl font-bold tracking-tight">Demo Videos</h2>
+        <p class="text-sm text-gray-400 mt-1">Real-time perception · Object detection · 3D mapping · Decision making</p>
+    </div>`,
+    body: `
+    <div class="space-y-6" style="max-height: calc(100vh - 180px); overflow-y: auto; padding: 4px;">
+        <div>
+            <h3 class="text-sm font-bold text-gray-300 mb-2">Demo 1 · Road Detection</h3>
+            <video controls class="w-full rounded-xl" style="background:#000;" preload="metadata" playsinline>
+                <source src="demo_video1.mp4" type="video/mp4">
+                Your browser does not support this video format.
+            </video>
+        </div>
+        <div>
+            <h3 class="text-sm font-bold text-gray-300 mb-2">Demo 2 · Object Avoidance</h3>
+            <video controls class="w-full rounded-xl" style="background:#000;" preload="metadata" playsinline>
+                <source src="demo_video2.mp4" type="video/mp4">
+                Your browser does not support this video format.
+            </video>
+        </div>
+        <div>
+            <h3 class="text-sm font-bold text-gray-300 mb-2">Demo 3 · 3D Mapping</h3>
+            <video controls class="w-full rounded-xl" style="background:#000;" preload="metadata" playsinline>
+                <source src="demo_video3.mp4" type="video/mp4">
+                Your browser does not support this video format.
+            </video>
+        </div>
+        <div>
+            <h3 class="text-sm font-bold text-gray-300 mb-2">Demo 4 · Full Pipeline</h3>
+            <video controls class="w-full rounded-xl" style="background:#000;" preload="metadata" playsinline>
+                <source src="demo_video4.mp4" type="video/mp4">
+                Your browser does not support this video format.
+            </video>
+        </div>
+    </div>`
+}
+};
+
+/* ══════════════════════════════════════════════════════
+   MODAL FUNCTIONS
+   ══════════════════════════════════════════════════════ */
+const modal = document.getElementById('modal');
+const modalHead = document.getElementById('modal-head-content');
+const modalBody = document.getElementById('modal-body');
+
+function openModal(key) {
+    const d = M[key];
+    if (!d) return;
+    modalHead.innerHTML = d.head;
+    modalBody.innerHTML = d.body;
+    // Full-screen for demo modal
+    if (key === 'demo') {
+        modal.classList.add('demo-full');
+        // Pause all videos when opening to reset playback
+        setTimeout(() => {
+            const videos = modalBody.querySelectorAll('video');
+            videos.forEach(v => { v.pause(); v.currentTime = 0; });
+        }, 50);
+    } else {
+        modal.classList.remove('demo-full');
+    }
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal(e, force) {
+    if (force || !e || e.target === modal) {
+        // Pause all videos before closing
+        const videos = modalBody.querySelectorAll('video');
+        videos.forEach(v => v.pause());
+        modal.classList.remove('active');
+        modal.classList.remove('demo-full');
+        document.body.style.overflow = 'hidden'; // keep body locked since it's single-page
+        setTimeout(() => { modalBody.innerHTML = ''; modalHead.innerHTML = ''; }, 350);
+    }
+}
+
+window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && modal.classList.contains('active')) closeModal(null, true);
+});
+
+/* Stagger card animations */
+document.querySelectorAll('.card').forEach((c, i) => {
+    c.style.animationDelay = (0.05 + i * 0.04) + 's';
+});
+</script>
+
+</body>
+</html>

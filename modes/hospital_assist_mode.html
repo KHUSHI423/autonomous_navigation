@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏥 Hospital Assist Mode - 3D Visualization</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/mode-3d.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body class="mode-page">
+    <nav class="mode-nav">
+        <div class="nav-content">
+            <a href="index.html" class="back-btn">← Back to Hub</a>
+            <div class="mode-title">
+                <span class="mode-icon">🏥</span>
+                <h1>Hospital Assist Mode</h1>
+            </div>
+            <div class="mode-status">
+                <span class="status-indicator live"></span>
+                <span>TRANSPORTING</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="mode-container">
+        <div class="viewport-3d" id="viewport3d"></div>
+        <div class="control-panel">
+            <div class="panel-section">
+                <h3>🏥 Transport Status</h3>
+                <div class="mission-display">
+                    <div class="mission-item">
+                        <span class="mission-label">Cargo Type</span>
+                        <span class="mission-value">Medical Supplies</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">From</span>
+                        <span class="mission-value">Pharmacy</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">To</span>
+                        <span class="mission-value">ICU Ward</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Progress</span>
+                        <span class="mission-value" id="progress">45%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>📊 Telemetry</h3>
+                <div class="telemetry-grid">
+                    <div class="telemetry-item">
+                        <span class="tele-label">Speed</span>
+                        <span class="tele-value" id="speedValue">1.5</span>
+                        <span class="tele-unit">m/s</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Battery</span>
+                        <span class="tele-value" id="batteryValue">88</span>
+                        <span class="tele-unit">%</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Load</span>
+                        <span class="tele-value" id="loadValue">12.5</span>
+                        <span class="tele-unit">kg</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Ultrasonic</span>
+                        <span class="tele-value" id="ultrasonicValue">38.7</span>
+                        <span class="tele-unit">cm</span>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>🏢 Hospital Map</h3>
+                <div class="map-display" id="hospitalMap">
+                    <div class="map-floor">
+                        <span class="floor-label">Floor 3</span>
+                        <div class="map-rooms">
+                            <div class="room pharmacy">Pharmacy</div>
+                            <div class="room hallway">Hallway</div>
+                            <div class="room icu">ICU Ward</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>🎮 Controls</h3>
+                <div class="button-grid">
+                    <button class="action-btn btn-primary" id="btnStartTransport">▶️ Start Transport</button>
+                    <button class="action-btn btn-warning" id="btnPause">⏸️ Pause</button>
+                    <button class="action-btn btn-danger" id="btnEmergencyStop">🛑 Stop</button>
+                    <button class="action-btn btn-success" id="btnCompleteTransport">✅ Deliver</button>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>🎥 Camera Feed</h3>
+                <div class="camera-feed" id="cameraFeed">
+                    <div class="feed-placeholder">
+                        <span class="feed-icon">📹</span>
+                        <span class="feed-text">Hospital Navigation</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="toast-container" id="toastContainer"></div>
+    <style>
+        .map-display {
+            padding: 15px;
+            background: rgba(0, 210, 255, 0.05);
+            border-radius: 12px;
+        }
+        .map-floor {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .floor-label {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        .map-rooms {
+            display: flex;
+            gap: 5px;
+        }
+        .room {
+            flex: 1;
+            padding: 10px;
+            background: rgba(0, 210, 255, 0.1);
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+        .room.pharmacy { border: 2px solid #00ff88; }
+        .room.hallway { border: 2px solid #00d2ff; }
+        .room.icu { border: 2px solid #ff0080; }
+    </style>
+    <script src="js/particles.js"></script>
+    <script src="js/social-modes-3d.js" data-mode="hospital"></script>
+    <script src="js/mode-controls.js"></script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📍 Summon Mode - 3D Visualization</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/mode-3d.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body class="mode-page">
+    <div class="cyber-grid"></div>
+    <div class="particles" id="particles"></div>
+
+    <nav class="mode-nav">
+        <div class="nav-content">
+            <a href="index.html" class="back-btn">
+                <span class="back-arrow">←</span>
+                <span>Back to Hub</span>
+            </a>
+            <div class="mode-title">
+                <span class="mode-icon">📍</span>
+                <h1>Summon Mode</h1>
+            </div>
+            <div class="mode-status">
+                <span class="status-indicator live"></span>
+                <span>NAVIGATING</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="mode-container">
+        <div class="viewport-3d" id="viewport3d"></div>
+
+        <div class="control-panel">
+            <div class="panel-section">
+                <h3>📍 Navigation</h3>
+                <div class="mission-display">
+                    <div class="mission-item">
+                        <span class="mission-label">Destination</span>
+                        <span class="mission-value" id="destination">User Location</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Distance Remaining</span>
+                        <span class="mission-value" id="distanceToGoal">125.5 m</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">ETA</span>
+                        <span class="mission-value" id="eta">2m 15s</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Navigation Status</span>
+                        <span class="mission-value status-ok" id="navStatus">Active</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>📊 Live Telemetry</h3>
+                <div class="telemetry-grid">
+                    <div class="telemetry-item">
+                        <span class="tele-label">Speed</span>
+                        <span class="tele-value" id="speedValue">3.2</span>
+                        <span class="tele-unit">m/s</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Battery</span>
+                        <span class="tele-value" id="batteryValue">88</span>
+                        <span class="tele-unit">%</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">GPS Signal</span>
+                        <span class="tele-value" id="gpsSignal">13</span>
+                        <span class="tele-unit">sats</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Ultrasonic</span>
+                        <span class="tele-value" id="ultrasonicValue">48.7</span>
+                        <span class="tele-unit">cm</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>🎮 Controls</h3>
+                <div class="button-grid">
+                    <button class="action-btn btn-primary" id="btnStartSummon">
+                        <span class="btn-icon">📍</span>
+                        Summon Vehicle
+                    </button>
+                    <button class="action-btn btn-warning" id="btnPause">
+                        <span class="btn-icon">⏸️</span>
+                        Pause
+                    </button>
+                    <button class="action-btn btn-danger" id="btnEmergencyStop">
+                        <span class="btn-icon">🛑</span>
+                        Emergency Stop
+                    </button>
+                    <button class="action-btn btn-success" id="btnSendBack">
+                        <span class="btn-icon">↩️</span>
+                        Send Back
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>🎥 Live Camera Feed</h3>
+                <div class="camera-feed" id="cameraFeed">
+                    <div class="feed-placeholder">
+                        <span class="feed-icon">📹</span>
+                        <span class="feed-text">Waiting for video stream...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="modal" id="deliveryModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-icon">🎉</span>
+                <h2>Vehicle Arrived!</h2>
+            </div>
+            <div class="modal-body">
+                <div class="delivery-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">Total Distance</span>
+                        <span class="summary-value">125 m</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Time Taken</span>
+                        <span class="summary-value">2m 18s</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Obstacles Avoided</span>
+                        <span class="summary-value">5</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Battery Used</span>
+                        <span class="summary-value">8%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn btn-primary" onclick="closeModal()">Summon Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/particles.js"></script>
+    <script src="js/summon-mode-3d.js"></script>
+    <script src="js/mode-controls.js"></script>
+</body>
+</html>

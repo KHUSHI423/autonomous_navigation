@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Icon Viewer</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 300px;
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar h1 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #4A90D9;
+        }
+        .category {
+            margin-bottom: 15px;
+        }
+        .category-title {
+            font-weight: bold;
+            color: #E8A87C;
+            margin-bottom: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .category-title:hover {
+            color: #fff;
+        }
+        .category-title::before {
+            content: "▶";
+            margin-right: 8px;
+            font-size: 0.8rem;
+            transition: transform 0.2s;
+        }
+        .category-title.expanded::before {
+            transform: rotate(90deg);
+        }
+        .model-list {
+            display: none;
+            padding-left: 20px;
+        }
+        .model-item {
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: rgba(74, 144, 217, 0.1);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .model-item:hover {
+            background: rgba(74, 144, 217, 0.3);
+        }
+        .model-item.selected {
+            background: #4A90D9;
+            color: white;
+        }
+        .viewer {
+            flex: 1;
+            position: relative;
+        }
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .controls label {
+            display: block;
+            margin: 8px 0;
+            cursor: pointer;
+        }
+        .controls input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        .model-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 300px;
+        }
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            color: #4A90D9;
+        }
+        .no-model {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #888;
+        }
+        .no-model h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>🗺️ 3D Icon Inventory</h1>
+            <p style="color: #888; font-size: 0.9rem; margin-bottom: 20px;">Select a model to view</p>
+            
+            <div id="model-tree"></div>
+        </div>
+        
+        <div class="viewer">
+            <div id="canvas-container">
+                <div class="no-model" id="no-model">
+                    <h2>🎮</h2>
+                    <p>Select a model from the sidebar<br>to preview in 3D</p>
+                </div>
+                <div class="loading" id="loading" style="display: none;">Loading...</div>
+            </div>
+            
+            <div class="controls" id="controls" style="display: none;">
+                <strong>Controls</strong>
+                <label>
+                    <input type="checkbox" id="autoRotate" checked> Auto Rotate
+                </label>
+                <label>
+                    <input type="checkbox" id="grid" checked> Show Grid
+                </label>
+                <label>
+                    <input type="checkbox" id="wireframe"> Wireframe
+                </label>
+            </div>
+            
+            <div class="model-info" id="model-info" style="display: none;">
+                <strong id="info-name"></strong><br>
+                <span id="info-size" style="color: #888;"></span>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        let scene, camera, renderer, controls, currentModel, gridHelper;
+        let modelGroup = new THREE.Group();
+        
+        const container = document.getElementById('canvas-container');
+        const modelTree = document.getElementById('model-tree');
+        
+        // Model data - update these paths
+        const models = {
+            vehicles: [
+                'models/vehicles/veh_car_sedan_blue.glb',
+                'models/vehicles/veh_car_suv_dark.glb',
+                'models/vehicles/veh_car_hatchback_yellow.glb',
+                'models/vehicles/veh_auto_rickshaw.glb',
+                'models/vehicles/veh_bus_city_red.glb',
+                'models/vehicles/veh_bike_motorcycle.glb',
+                'models/vehicles/veh_bicycle_blue.glb',
+                'models/vehicles/veh_truck_delivery.glb'
+            ],
+            buildings: [
+                'models/buildings/residential/bld_apartment_orange.glb',
+                'models/buildings/commercial/bld_shop_blue.glb',
+                'models/buildings/commercial/bld_office_tower.glb',
+                'models/buildings/special/bld_temple_orange.glb',
+                'models/buildings/special/bld_hospital_white.glb'
+            ],
+            infrastructure: [
+                'models/infrastructure/roads/inf_road_lane.glb',
+                'models/infrastructure/traffic/inf_traffic_signal.glb',
+                'models/infrastructure/street/inf_street_light.glb'
+            ],
+            environment: [
+                'models/environment/trees/env_tree_large.glb',
+                'models/environment/trees/env_tree_palm.glb',
+                'models/environment/greenery/env_grass.glb'
+            ],
+            humans: [
+                'models/humans/hum_pedestrian_blue.glb',
+                'models/humans/hum_cyclist.glb'
+            ],
+            markers: [
+                'models/markers/mrk_pin_location.glb',
+                'models/markers/mrk_start.glb'
+            ]
+        };
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+
+            camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(8, 8, 8);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 2;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(10, 20, 10);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            const light = new THREE.PointLight(0xffffff, 0.4);
+            light.position.set(-10, 10, -10);
+            scene.add(light);
+
+            gridHelper = new THREE.GridHelper(30, 30, 0x444444, 0x333333);
+            scene.add(gridHelper);
+
+            scene.add(modelGroup);
+
+            buildModelTree();
+            setupControls();
+            animate();
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function buildModelTree() {
+            for (const [category, files] of Object.entries(models)) {
+                const catDiv = document.createElement('div');
+                catDiv.className = 'category';
+                
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'category-title';
+                titleDiv.textContent = category.charAt(0).toUpperCase() + category.slice(1) + ` (${files.length})`;
+                titleDiv.onclick = () => {
+                    titleDiv.classList.toggle('expanded');
+                    listDiv.style.display = listDiv.style.display === 'block' ? 'none' : 'block';
+                };
+                
+                const listDiv = document.createElement('div');
+                listDiv.className = 'model-list';
+                
+                files.forEach(file => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'model-item';
+                    itemDiv.textContent = file.split('/').pop().replace('.glb', '');
+                    itemDiv.onclick = () => loadModel(file, itemDiv);
+                    listDiv.appendChild(itemDiv);
+                });
+                
+                catDiv.appendChild(titleDiv);
+                catDiv.appendChild(listDiv);
+                modelTree.appendChild(catDiv);
+            }
+        }
+
+        function setupControls() {
+            document.getElementById('autoRotate').onchange = (e) => {
+                controls.autoRotate = e.target.checked;
+            };
+            
+            document.getElementById('grid').onchange = (e) => {
+                gridHelper.visible = e.target.checked;
+            };
+            
+            document.getElementById('wireframe').onchange = (e) => {
+                if (currentModel) {
+                    currentModel.traverse((child) => {
+                        if (child.isMesh && child.material) {
+                            child.material.wireframe = e.target.checked;
+                        }
+                    });
+                }
+            };
+        }
+
+        async function loadModel(path, element) {
+            document.querySelectorAll('.model-item').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('no-model').style.display = 'none';
+            document.getElementById('controls').style.display = 'block';
+            document.getElementById('model-info').style.display = 'block';
+
+            try {
+                if (currentModel) {
+                    modelGroup.remove(currentModel);
+                    currentModel.traverse((child) => {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) {
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach(m => m.dispose());
+                            } else {
+                                child.material.dispose();
+                            }
+                        }
+                    });
+                }
+
+                const response = await fetch(path);
+                const buffer = await response.arrayBuffer();
+                
+                const loader = new GLTFLoader();
+                loader.parse(buffer, '', (gltf) => {
+                    currentModel = gltf.scene;
+                    
+                    const box = new THREE.Box3().setFromObject(currentModel);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 8 / maxDim;
+                    
+                    currentModel.scale.setScalar(scale);
+                    currentModel.position.sub(center.multiplyScalar(scale));
+                    currentModel.position.y = 0;
+                    
+                    currentModel.traverse((child) => {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        }
+                    });
+                    
+                    modelGroup.add(currentModel);
+                    
+                    document.getElementById('info-name').textContent = path.split('/').pop();
+                    document.getElementById('info-size').textContent = `Size: ${(buffer.byteLength / 1024).toFixed(1)} KB`;
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    camera.position.set(maxDim * 3, maxDim * 3, maxDim * 3);
+                    controls.update();
+                }, (error) => {
+                    console.error('Error:', error);
+                    document.getElementById('loading').textContent = 'Error loading model';
+                });
+            } catch (error) {
+                console.error('Fetch error:', error);
+                document.getElementById('loading').textContent = 'Error: File not found';
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+</body>
+</html>

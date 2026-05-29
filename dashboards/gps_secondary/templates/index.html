@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdgeDrive3D Real-Time</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.20.0.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #0B0B0F; color: #fff; }
+        
+        .header { background: #181824; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .header h1 { font-size: 1.5rem; background: linear-gradient(135deg, #5D5FEF, #10B981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .container { padding: 2rem; max-width: 1600px; margin: 0 auto; }
+        
+        .controls { background: #181824; padding: 1.5rem; border-radius: 16px; margin-bottom: 2rem; border: 1px solid rgba(255,255,255,0.06); }
+        .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+        .btn { padding: 0.75rem 1.5rem; border-radius: 50px; border: none; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+        .btn-primary { background: #5D5FEF; color: white; }
+        .btn-success { background: #10B981; color: white; }
+        .btn-danger { background: #EF4444; color: white; }
+        .btn-secondary { background: #0B0B0F; color: white; border: 1px solid rgba(255,255,255,0.1); }
+        
+        .mode-section { margin-bottom: 1.5rem; }
+        .mode-section h3 { margin-bottom: 0.5rem; color: #8B8B9E; font-size: 0.9rem; }
+        
+        .file-upload { margin-top: 0.5rem; }
+        input[type="file"] { display: none; }
+        .file-label { display: inline-block; padding: 0.75rem 1.5rem; background: #0B0B0F; border: 1px solid rgba(255,255,255,0.1); border-radius: 50px; cursor: pointer; }
+        .file-label:hover { border-color: #5D5FEF; color: #5D5FEF; }
+        
+        .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+        .metric-card { background: #181824; padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); text-align: center; }
+        .metric-value { font-size: 2rem; font-weight: 800; font-family: monospace; }
+        .metric-label { color: #8B8B9E; font-size: 0.85rem; margin-top: 0.5rem; }
+        
+        .video-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+        .card { background: #181824; padding: 1rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); }
+        .card-title { font-weight: 700; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        
+        .video-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; overflow: hidden; }
+        .video-container img { width: 100%; height: 100%; object-fit: contain; }
+        .placeholder { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #8B8B9E; }
+        
+        .bottom-grid { display: grid; grid-template-columns: 1fr 1fr 300px; gap: 1rem; margin-bottom: 1rem; }
+        .chart-container { height: 300px; }
+        
+        .detection-list { max-height: 280px; overflow-y: auto; }
+        .detection-item { background: #0B0B0F; padding: 12px; margin: 6px 0; border-radius: 12px; display: flex; justify-content: space-between; border: 1px solid rgba(255,255,255,0.06); }
+        
+        .warnings { margin-bottom: 1rem; }
+        .warning-box { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1rem; border-radius: 12px; color: #EF4444; margin: 0.5rem 0; }
+        .info-box { background: rgba(93, 95, 239, 0.1); border: 1px solid rgba(93, 95, 239, 0.3); padding: 1rem; border-radius: 12px; color: #5D5FEF; }
+        
+        .progress-bar { width: 100%; height: 8px; background: #0B0B0F; border-radius: 10px; overflow: hidden; margin-top: 1rem; display: none; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #5D5FEF, #10B981); width: 0%; transition: width 0.3s; }
+        
+        #bevContainer svg { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚗 EdgeDrive3D Real-Time</h1>
+        <div>
+            <span id="status" class="btn btn-secondary" style="margin-right: 1rem;">Stopped</span>
+            <span id="clock"></span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="controls">
+            <div class="mode-section">
+                <h3>🎯 Select Mode</h3>
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="setMode('demo')">🎮 Demo</button>
+                    <button class="btn btn-secondary" onclick="setMode('webcam')">📹 Webcam</button>
+                    <button class="btn btn-secondary" onclick="setMode('image')">🖼️ Image</button>
+                    <button class="btn btn-secondary" onclick="setMode('video')">🎬 Video</button>
+                </div>
+            </div>
+
+            <div id="imageSection" class="mode-section" style="display: none;">
+                <h3>📤 Upload Image</h3>
+                <div class="file-upload">
+                    <label class="file-label">📁 Choose Image
+                        <input type="file" id="imageInput" accept="image/*" onchange="handleImageUpload()">
+                    </label>
+                    <span id="imageName" style="margin-left: 1rem; color: #8B8B9E;"></span>
+                </div>
+            </div>
+
+            <div id="videoSection" class="mode-section" style="display: none;">
+                <h3>📤 Upload Video</h3>
+                <div class="file-upload">
+                    <label class="file-label">📁 Choose Video
+                        <input type="file" id="videoInput" accept="video/*" onchange="handleVideoUpload()">
+                    </label>
+                    <span id="videoName" style="margin-left: 1rem; color: #8B8B9E;"></span>
+                </div>
+                <div class="btn-group" style="margin-top: 1rem;">
+                    <button class="btn btn-success" onclick="playVideo()">▶ Play Video</button>
+                    <button class="btn btn-secondary" onclick="stopVideo()">⏹ Stop</button>
+                </div>
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="progressText" style="text-align: right; color: #8B8B9E; margin-top: 0.5rem; font-size: 0.85rem;"></div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" id="startBtn" onclick="start()">▶ START</button>
+                <button class="btn btn-danger" id="stopBtn" onclick="stop()" style="display: none;">⏹ STOP</button>
+                <button class="btn btn-secondary" onclick="location.reload()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <div class="warnings" id="warnings">
+            <div class="info-box">✅ System Ready - Select a mode and click START</div>
+        </div>
+
+        <div class="metrics">
+            <div class="metric-card">
+                <div class="metric-value" id="fps">0</div>
+                <div class="metric-label">FPS</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="objects">0</div>
+                <div class="metric-label">Objects</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="decision" style="color: #10B981;">STOP</div>
+                <div class="metric-label">Decision</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="uptime">0s</div>
+                <div class="metric-label">Uptime</div>
+            </div>
+        </div>
+
+        <div class="video-grid">
+            <div class="card">
+                <div class="card-title">🎯 Object Detection</div>
+                <div class="video-container">
+                    <img id="detFrame" alt="Detection">
+                    <div class="placeholder" id="detPlaceholder">
+                        <div style="font-size: 3rem;">📹</div>
+                        <div style="margin-top: 1rem;">Waiting for feed...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">🌊 Depth Map</div>
+                <div class="video-container">
+                    <img id="depthFrame" alt="Depth">
+                    <div class="placeholder" id="depthPlaceholder">
+                        <div style="font-size: 3rem;">🌊</div>
+                        <div style="margin-top: 1rem;">No data</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-grid">
+            <div class="card">
+                <div class="card-title">🗺️ BEV Map</div>
+                <div class="video-container" id="bevContainer">
+                    <div class="placeholder">BEV not available</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">📦 3D View</div>
+                <div id="plot3D" class="chart-container"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">📏 Detections</div>
+                <div class="detection-list" id="detectionList">
+                    <div style="text-align: center; color: #8B8B9E; padding: 2rem;">No objects</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📈 Analytics</div>
+            <div id="analyticsChart" class="chart-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let mode = 'demo';
+        let startTime = null;
+        let fpsHistory = [];
+        let objHistory = [];
+
+        socket.on('connect', () => console.log('✅ Connected'));
+        
+        socket.on('update', (data) => {
+            if (data.detection_frame) {
+                document.getElementById('detFrame').src = 'data:image/jpeg;base64,' + data.detection_frame;
+                document.getElementById('detPlaceholder').style.display = 'none';
+            }
+            if (data.depth_frame) {
+                document.getElementById('depthFrame').src = 'data:image/jpeg;base64,' + data.depth_frame;
+                document.getElementById('depthPlaceholder').style.display = 'none';
+            }
+            if (data.bev_svg) {
+                document.getElementById('bevContainer').innerHTML = data.bev_svg;
+            }
+            if (data.plot_3d) {
+                Plotly.react('plot3D', data.plot_3d.data, data.plot_3d.layout, {displayModeBar: false});
+            }
+            if (data.detections) {
+                updateList(data.detections);
+            }
+            
+            document.getElementById('fps').textContent = data.fps.toFixed(1);
+            document.getElementById('objects').textContent = data.objects;
+            document.getElementById('decision').textContent = data.decision.toUpperCase();
+            document.getElementById('decision').style.color = data.decision === 'forward' ? '#10B981' : (data.decision === 'stop' ? '#EF4444' : '#F59E0B');
+            
+            if (data.warnings && data.warnings.length > 0) {
+                document.getElementById('warnings').innerHTML = data.warnings.map(w => '<div class="warning-box">' + w + '</div>').join('');
+            } else {
+                document.getElementById('warnings').innerHTML = '<div class="info-box">✅ System Normal</div>';
+            }
+            
+            // Update chart
+            fpsHistory.push(data.fps);
+            objHistory.push(data.objects);
+            if (fpsHistory.length > 50) fpsHistory.shift();
+            if (objHistory.length > 50) objHistory.shift();
+            
+            Plotly.react('analyticsChart', [{
+                y: fpsHistory, name: 'FPS', line: {color: '#5D5FEF', width: 2}
+            }, {
+                y: objHistory, name: 'Objects', line: {color: '#10B981', width: 2}, yaxis: 'y2'
+            }], {
+                paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+                font: {color: '#8B8B9E', size: 11}, height: 300, margin: {l: 40, r: 40, t: 20, b: 40}
+            }, {displayModeBar: false});
+        });
+
+        socket.on('video_progress', (data) => {
+            document.getElementById('progressBar').style.display = 'block';
+            const pct = (data.frame / data.total) * 100;
+            document.getElementById('progressFill').style.width = pct + '%';
+            document.getElementById('progressText').textContent = data.frame + ' / ' + data.total + ' frames';
+        });
+
+        function setMode(m) {
+            mode = m;
+            socket.emit('set_mode', {mode: m});
+            
+            document.getElementById('imageSection').style.display = m === 'image' ? 'block' : 'none';
+            document.getElementById('videoSection').style.display = m === 'video' ? 'block' : 'none';
+            
+            document.getElementById('status').textContent = 'Stopped';
+            document.getElementById('status').className = 'btn btn-secondary';
+        }
+
+        function start() {
+            socket.emit('start');
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'inline-block';
+            document.getElementById('status').textContent = 'Running';
+            document.getElementById('status').className = 'btn btn-success';
+            startTime = Date.now();
+        }
+
+        function stop() {
+            socket.emit('stop');
+            document.getElementById('startBtn').style.display = 'inline-block';
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('status').textContent = 'Stopped';
+            document.getElementById('status').className = 'btn btn-secondary';
+        }
+
+        function handleImageUpload() {
+            const file = document.getElementById('imageInput').files[0];
+            if (file) {
+                document.getElementById('imageName').textContent = file.name;
+                const formData = new FormData();
+                formData.append('image', file);
+                
+                fetch('/upload_image', {method: 'POST', body: formData})
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.success) {
+                            document.getElementById('warnings').innerHTML = '<div class="info-box">✅ Image processed! ' + d.objects + ' objects detected</div>';
+                        }
+                    });
+            }
+        }
+
+        function handleVideoUpload() {
+            const file = document.getElementById('videoInput').files[0];
+            if (file) {
+                document.getElementById('videoName').textContent = file.name;
+                const formData = new FormData();
+                formData.append('video', file);
+                
+                fetch('/upload_video', {method: 'POST', body: formData})
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.success) {
+                            document.getElementById('warnings').innerHTML = '<div class="info-box">✅ Video loaded! ' + d.frames + ' frames</div>';
+                        }
+                    });
+            }
+        }
+
+        function playVideo() {
+            fetch('/play_video', {method: 'POST'})
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success) {
+                        document.getElementById('progressBar').style.display = 'block';
+                    }
+                });
+        }
+
+        function stopVideo() {
+            fetch('/stop_video', {method: 'POST'});
+        }
+
+        function updateList(dets) {
+            const list = document.getElementById('detectionList');
+            if (!dets || dets.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #8B8B9E; padding: 2rem;">No objects</div>';
+                return;
+            }
+            
+            const colors = {'car': '#0a84ff', 'truck': '#5ac8fa', 'bus': '#ff9f0a', 'person': '#ffd60a', 'motorcycle': '#ff375f'};
+            
+            list.innerHTML = dets.slice(0, 10).map(o => `
+                <div class="detection-item" style="border-left: 3px solid ${colors[o.class_name] || '#fff'}">
+                    <div>
+                        <div style="color: ${colors[o.class_name] || '#fff'}; font-weight: 600;">${o.class_name}</div>
+                        <div style="color: #8B8B9E; font-size: 0.85rem;">Conf: ${(o.confidence * 100).toFixed(0)}%</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="color: #8B8B9E; font-size: 0.85rem;">${o.distance.toFixed(1)}m</div>
+                        <div style="color: #8B8B9E; font-size: 0.85rem;">${o.dimensions.width.toFixed(1)}×${o.dimensions.height.toFixed(1)}m</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        setInterval(() => {
+            document.getElementById('clock').textContent = new Date().toLocaleTimeString();
+            if (startTime) {
+                document.getElementById('uptime').textContent = Math.floor((Date.now() - startTime) / 1000) + 's';
+            }
+        }, 1000);
+
+        // Initialize chart
+        Plotly.newPlot('analyticsChart', [{y: [], name: 'FPS', line: {color: '#5D5FEF'}}, {y: [], name: 'Objects', line: {color: '#10B981'}, yaxis: 'y2'}], {paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: {color: '#8B8B9E'}, height: 300}, {displayModeBar: false});
+    </script>
+</body>
+</html>

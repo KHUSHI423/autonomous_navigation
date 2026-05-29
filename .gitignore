@@ -1,0 +1,54 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# ---- Node ----
+node_modules/
+.vite/
+dist/
+build/
+npm-debug.log*
+
+# ---- ML model weights (download via ultralytics / link in README) ----
+*.pt
+*.onnx
+*.engine
+*.pth
+
+# ---- Media / large binaries (host externally, link in README) ----
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.ply
+
+# ---- Generated output ----
+output/
+output_3d/
+outputs/
+runs/
+logs/
+*.log
+
+# ---- Secrets / local env ----
+.env
+.env.local
+*.key
+*.pem
+
+# ---- Editor / OS ----
+.vscode/
+.idea/
+.ruff_cache/
+.DS_Store
+Thumbs.db
+
+# ---- Backups / scratch ----
+*.bak
+*- Copy.*
+*_BACKUP*

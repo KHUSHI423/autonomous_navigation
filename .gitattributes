@@ -1,0 +1,14 @@
+# Normalize line endings; let git handle CRLF/LF automatically
+* text=auto
+
+# Keep shell/firmware scripts LF
+*.sh    text eol=lf
+*.ino   text eol=lf
+
+# Treat these as binary
+*.glb   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.pt    binary
+*.mp4   binary

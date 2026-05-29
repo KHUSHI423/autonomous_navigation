@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intelligent Autonomous Robot Car — Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Variables ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f6f8;
+  --bg2:#eef0f4;
+  --surface:#ffffff;
+  --surface2:#f8f9fb;
+  --border:#e4e7ed;
+  --border2:#d0d5dd;
+  --text:#1a1d23;
+  --text2:#5f6570;
+  --text3:#8b909e;
+  --accent:#2563eb;
+  --accent2:#3b82f6;
+  --accent-light:#eef2ff;
+  --accent-subtle:#f8faff;
+  --success:#059669;
+  --warn:#d97706;
+  --danger:#dc2626;
+  --codebg:#f0f2f5;
+  --codeborder:#e2e5eb;
+  --sidebar-w:260px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.05),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 12px rgba(0,0,0,.06),0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg:0 10px 30px rgba(0,0,0,.06),0 4px 8px rgba(0,0,0,.03);
+  --radius:10px;
+  --radius-sm:6px;
+  font-size:16px;
+}
+html{scroll-behavior:smooth;scroll-padding-top:24px}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--accent);color:#fff}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+
+/* ── Progress Bar ── */
+#progress{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));z-index:9999;transition:width .15s ease;border-radius:0 2px 2px 0;box-shadow:0 0 6px rgba(37,99,235,.3)}
+
+/* ── Sidebar ── */
+#sidebar{
+  position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;
+  background:var(--surface);border-right:1px solid var(--border);z-index:100;
+  overflow-y:auto;padding:0;transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+.sidebar-header{padding:28px 24px 20px;border-bottom:1px solid var(--border)}
+.sidebar-header h2{font-size:.82rem;font-weight:700;color:var(--accent);letter-spacing:.3px;text-transform:uppercase}
+.sidebar-header .badge{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:3px 10px;background:var(--accent-light);border-radius:100px;font-size:.7rem;font-weight:500;color:var(--accent)}
+.sidebar-header p{font-size:.7rem;color:var(--text3);margin-top:6px}
+.sidebar-nav{padding:12px 0}
+.sidebar-nav a{
+  display:flex;align-items:center;gap:8px;padding:7px 24px;font-size:.79rem;font-weight:450;
+  color:var(--text2);text-decoration:none;transition:all .15s;border-left:3px solid transparent;
+}
+.sidebar-nav a:hover{color:var(--accent);background:var(--accent-subtle)}
+.sidebar-nav a.active{color:var(--accent);background:var(--accent-light);border-left-color:var(--accent);font-weight:500}
+.sidebar-nav a .num{font-size:.65rem;color:var(--text3);min-width:18px;font-weight:500}
+.sidebar-nav a.active .num{color:var(--accent)}
+.sidebar-divider{height:1px;background:var(--border);margin:8px 24px}
+
+/* ── Main Content ── */
+#main{margin-left:var(--sidebar-w);position:relative;z-index:1;padding:0;min-height:100vh}
+.inner{max-width:900px;margin:0 auto;padding:0 48px 60px}
+
+/* ── Hero ── */
+.hero{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:80px 0 60px;margin-bottom:40px;position:relative;
+}
+.hero::after{content:'';position:absolute;bottom:-1px;left:10%;width:80%;height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent)}
+.hero-tag{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 12px;
+  background:var(--accent-light);border-radius:100px;font-size:.72rem;font-weight:500;
+  color:var(--accent);margin-bottom:20px;letter-spacing:.2px;
+}
+.hero h1{
+  font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:800;line-height:1.2;
+  color:var(--text);margin-bottom:16px;letter-spacing:-.02em;
+}
+.hero p{font-size:1rem;color:var(--text2);max-width:680px;margin-bottom:28px;line-height:1.65}
+.hero-stats{display:flex;flex-wrap:wrap;gap:10px}
+.hero-stats span{
+  display:flex;align-items:center;gap:6px;padding:5px 14px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.78rem;color:var(--text2);
+}
+.hero-stats code{font-size:.75rem;color:var(--accent);background:var(--accent-light);padding:1px 5px;border-radius:3px}
+
+/* ── Feature Grid (Hero) ── */
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:36px}
+.feature-card{
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px;transition:all .2s;cursor:default;
+}
+.feature-card:hover{border-color:var(--accent);box-shadow:var(--shadow-sm);background:var(--surface)}
+.feature-card .fc-icon{font-size:1.2rem;margin-bottom:8px}
+.feature-card h4{font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:4px}
+.feature-card p{font-size:.75rem;color:var(--text3);margin:0;line-height:1.5}
+
+/* ── Sections ── */
+section{padding:0 0 32px;margin-bottom:32px}
+section:last-of-type{margin-bottom:0}
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.section-num{
+  width:32px;height:32px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;
+  font-size:.72rem;font-weight:600;background:var(--accent);color:#fff;flex-shrink:0;
+}
+.section-header h2{font-size:1.15rem;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.section-header h2 span{color:var(--text3);font-weight:400}
+.section-header .line{flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+.section-body{animation:fadeIn .4s ease}
+
+h3{font-size:.95rem;font-weight:600;margin:24px 0 10px;color:var(--text)}
+h4{font-size:.85rem;font-weight:600;margin:18px 0 8px;color:var(--text)}
+p{margin-bottom:10px;color:var(--text2);font-size:.92rem;line-height:1.65}
+p strong{color:var(--text)}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ── Cards (Sections) ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin:14px 0}
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px;transition:all .2s;box-shadow:var(--shadow-sm);
+}
+.card:hover{box-shadow:var(--shadow-md);border-color:var(--accent);transform:translateY(-2px)}
+.card-icon{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:1rem;margin-bottom:10px;background:var(--accent-light);color:var(--accent)}
+.card h4{font-size:.82rem;font-weight:600;margin:0 0 6px;color:var(--text)}
+.card p{font-size:.78rem;margin:0;color:var(--text2);line-height:1.5}
+
+/* ── Tables ── */
+.table-wrap{overflow-x:auto;margin:14px 0;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+thead{background:var(--surface2)}
+th{padding:9px 14px;text-align:left;font-weight:600;color:var(--text2);font-size:.75rem;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)}
+td{padding:8px 14px;border-top:1px solid var(--border);color:var(--text2);font-size:.82rem}
+tr:first-child td{border-top:none}
+tr:hover td{background:var(--accent-subtle)}
+td:first-child{font-weight:500;color:var(--text)}
+
+/* ── Code Blocks ── */
+.code-block{position:relative;margin:14px 0;border-radius:var(--radius);overflow:hidden;border:1px solid var(--codeborder);background:var(--codebg)}
+.code-block pre{padding:18px 20px;overflow-x:auto;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.78rem;line-height:1.5;color:#1e293b;tab-size:2}
+.code-lang{
+  position:absolute;top:0;right:0;padding:3px 10px;font-size:.65rem;font-weight:500;
+  color:var(--text3);background:var(--surface);border-radius:0 0 0 var(--radius-sm);text-transform:uppercase;letter-spacing:.4px;
+}
+.copy-btn{
+  position:absolute;top:6px;right:6px;padding:3px 10px;font-size:.7rem;font-weight:500;
+  color:var(--text2);background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;opacity:0;
+}
+.code-block:hover .copy-btn{opacity:1}
+.copy-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.copy-btn.copied{opacity:1!important;background:var(--success);color:#fff;border-color:var(--success)}
+
+/* Syntax highlighting - light theme */
+.code-block pre .kw{color:#7c3aed;font-weight:500}
+.code-block pre .str{color:#0369a1}
+.code-block pre .cm{color:#94a3b8;font-style:italic}
+.code-block pre .fn{color:#0f766e}
+.code-block pre .num{color:#b45309}
+.code-block pre .prop{color:#2563eb}
+.code-block pre .tag{color:#059669}
+.code-block pre .attr{color:#7c3aed}
+.code-block pre .punc{color:#475569}
+.code-block pre .comment{color:#94a3b8;font-style:italic}
+
+/* ── Lists ── */
+.ul{margin:10px 0;padding-left:22px}
+.ul li{margin-bottom:5px;color:var(--text2);font-size:.88rem;line-height:1.55}
+.ul li::marker{color:var(--accent)}
+.ol{margin:10px 0;padding-left:22px}
+.ol li{margin-bottom:5px;color:var(--text2);font-size:.88rem;line-height:1.55}
+.ol li::marker{color:var(--accent);font-weight:600}
+
+/* ── Architecture Diagram ── */
+.diagram{background:var(--surface);padding:24px 20px;border-radius:var(--radius);border:1px solid var(--border);margin:14px 0;font-family:'JetBrains Mono','Fira Code',monospace;font-size:.72rem;line-height:1.35;overflow-x:auto;white-space:pre;color:#334155}
+.diagram .box{color:#2563eb}
+.diagram .box2{color:#0f766e}
+.diagram .box3{color:#7c3aed}
+.diagram .arrow{color:#94a3b8}
+.diagram .label{color:#d97706}
+.diagram .hl{color:#059669}
+.diagram .dim{color:#94a3b8}
+
+/* ── Tags ── */
+.tag{display:inline-block;padding:1px 8px;border-radius:4px;font-size:.72rem;font-weight:500}
+.tag-blue{background:var(--accent-light);color:var(--accent)}
+.tag-green{background:#ecfdf5;color:#059669}
+.tag-amber{background:#fffbeb;color:#d97706}
+.tag-red{background:#fef2f2;color:#dc2626}
+.tag-purple{background:#f5f3ff;color:#7c3aed}
+code{background:var(--accent-light);padding:1px 6px;border-radius:4px;font-size:.82em;font-family:'JetBrains Mono',monospace;color:var(--accent)}
+
+/* ── Status Items ── */
+.status-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin:14px 0}
+.status-item{padding:9px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:9px;font-size:.82rem;color:var(--text2);transition:all .15s}
+.status-item:hover{border-color:var(--accent);box-shadow:var(--shadow-sm)}
+.status-icon{font-size:.9rem;width:20px;text-align:center;flex-shrink:0}
+
+/* ── File Tree ── */
+.file-tree{background:var(--surface);padding:20px;border-radius:var(--radius);border:1px solid var(--border);margin:14px 0;font-family:'JetBrains Mono',monospace;font-size:.75rem;line-height:1.5;overflow-x:auto;color:#334155}
+.file-tree .folder{color:var(--accent);font-weight:500}
+.file-tree .file{color:#475569}
+.file-tree .comment{color:#94a3b8;font-style:italic}
+.file-tree .hl{color:#d97706}
+
+/* ── Network Diagram ── */
+.network-diagram{display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin:14px 0}
+.network-node{padding:7px 18px;border-radius:var(--radius-sm);font-size:.78rem;font-family:'JetBrains Mono',monospace;border:1px solid;text-align:center;min-width:110px;line-height:1.4}
+.network-node.internet{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.network-node.router{border-color:var(--success);color:var(--success);background:#ecfdf5}
+.network-node.device{border-color:var(--accent2);color:var(--accent2);background:var(--accent-subtle)}
+.network-node.endpoint{border-color:var(--warn);color:var(--warn);background:#fffbeb}
+.network-arrow{color:var(--text3);font-size:.65rem;font-family:'JetBrains Mono',monospace}
+.network-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+
+/* ── Pin Tables ── */
+.pin-table td:first-child{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:.77rem;font-weight:500}
+
+/* ── Roadmap ── */
+.roadmap-cat{margin-bottom:18px}
+.roadmap-cat h4{display:flex;align-items:center;gap:7px;font-size:.85rem;margin-bottom:10px}
+
+/* ── Blockquote ── */
+blockquote{border-left:3px solid var(--accent);padding:10px 18px;margin:14px 0;background:var(--accent-subtle);border-radius:0 var(--radius-sm) var(--radius-sm) 0;color:var(--text2);font-size:.9rem}
+blockquote strong{color:var(--text)}
+
+/* ── Separator ── */
+hr{border:none;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:28px 0}
+
+/* ── Utility ── */
+.flex{display:flex;flex-wrap:wrap;gap:12px}
+.gap-8{gap:8px}
+
+/* ── Footer ── */
+.footer{text-align:center;padding:36px 0 20px;border-top:1px solid var(--border);color:var(--text3);font-size:.78rem;margin-top:48px}
+.footer strong{color:var(--text2)}
+
+/* ── Mobile ── */
+.menu-toggle{
+  display:none;position:fixed;top:14px;left:14px;z-index:200;width:38px;height:38px;
+  align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);cursor:pointer;color:var(--text);font-size:1.1rem;
+  box-shadow:var(--shadow-sm);transition:all .15s;
+}
+.menu-toggle:hover{background:var(--surface2)}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:99}
+.sidebar-overlay.show{display:block}
+
+@media(max-width:900px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.open{transform:translateX(0)}
+  #main{margin-left:0}
+  .inner{padding:0 16px 40px}
+  .hero{padding:60px 0 40px}
+  .menu-toggle{display:flex!important}
+}
+
+/* ── Animations ── */
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+
+/* ── Scroll reveal ── */
+section{opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s ease}
+section.visible{opacity:1;transform:translateY(0)}
+section.visible .section-body>*{animation:fadeIn .4s ease both}
+section.visible .section-body>:nth-child(1){animation-delay:.05s}
+section.visible .section-body>:nth-child(2){animation-delay:.1s}
+section.visible .section-body>:nth-child(3){animation-delay:.15s}
+
+/* ── Print ── */
+@media print{
+  #sidebar,#progress,.menu-toggle,.sidebar-overlay{display:none!important}
+  #main{margin-left:0;padding:0}
+  .inner{max-width:100%;padding:0}
+  section{opacity:1!important;transform:none!important}
+  .hero{break-after:avoid}
+}
+</style>
+</head>
+<body>
+
+<!-- Progress Bar -->
+<div id="progress"></div>
+
+<!-- Mobile Menu -->
+<button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- Sidebar -->
+<nav id="sidebar">
+  <div class="sidebar-header">
+    <h2>Robot Car</h2>
+    <div class="badge">📘 Architecture Docs</div>
+    <p>Dual ESP32 + Pi 5 + Laptop</p>
+  </div>
+  <div class="sidebar-nav" id="sidebarLinks">
+    <a href="#overview"><span class="num">01</span> Overview</a>
+    <a href="#architecture"><span class="num">02</span> Architecture</a>
+    <a href="#hardware"><span class="num">03</span> Hardware</a>
+    <a href="#software"><span class="num">04</span> Software</a>
+    <a href="#modes"><span class="num">05</span> Modes</a>
+    <a href="#decision"><span class="num">06</span> Decision Engine</a>
+    <a href="#gps"><span class="num">07</span> GPS &amp; Navigation</a>
+    <a href="#digital-twin"><span class="num">08</span> Digital Twin</a>
+    <a href="#dashboard"><span class="num">09</span> Dashboard</a>
+    <a href="#telegram"><span class="num">10</span> Telegram Bot</a>
+    <a href="#perception"><span class="num">11</span> Perception</a>
+    <a href="#comms"><span class="num">12</span> Communications</a>
+    <a href="#config"><span class="num">13</span> Configuration</a>
+    <a href="#setup"><span class="num">14</span> Setup</a>
+    <a href="#files"><span class="num">15</span> File Structure</a>
+    <a href="#roadmap"><span class="num">16</span> Roadmap</a>
+    <div class="sidebar-divider"></div>
+    <a href="#appendix-a"><span class="num">A</span> Network Topology</a>
+    <a href="#appendix-b"><span class="num">B</span> Pinout Reference</a>
+  </div>
+</nav>
+
+<!-- Main -->
+<main id="main">
+
+<!-- ── HERO ── -->
+<div class="hero" id="overview">
+  <div class="inner">
+    <div class="hero-tag">🚀 Project Overview</div>
+    <h1>Intelligent Autonomous<br>Robot Car System</h1>
+    <p>A distributed autonomous robot platform combining computer vision, GPS navigation, real-time obstacle avoidance, and multi-mode operation. The laptop runs the brain (YOLOv8 + decision engine), Raspberry Pi 5 streams camera video, and dual ESP32s handle motor control and ultrasonic sensing over a shared Wi-Fi network.</p>
+    <div class="hero-stats">
+      <span>📁 <code>combined_final_new_gps/</code></span>
+      <span>📅 Updated 2026-03-16</span>
+      <span>🎯 Pi 5 + ESP32 × 2</span>
+      <span>🧠 Laptop Brain</span>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="fc-icon">🧭</div><h4>Autonomous Navigation</h4><p>GPS waypoint following with real-time obstacle avoidance</p></div>
+      <div class="feature-card"><div class="fc-icon">🎯</div><h4>Multi-Mode Operation</h4><p>11+ modes: Follow Me, Delivery, Escort, Emergency &amp; more</p></div>
+      <div class="feature-card"><div class="fc-icon">👁️</div><h4>Real-Time Perception</h4><p>YOLOv8 on laptop, Pi 5 camera streamer, ultrasonic fusion</p></div>
+      <div class="feature-card"><div class="fc-icon">🔄</div><h4>Digital Twin</h4><p>Live virtual replica synced with physical hardware</p></div>
+      <div class="feature-card"><div class="fc-icon">📱</div><h4>Remote Control</h4><p>Telegram bot + web dashboard for command &amp; monitoring</p></div>
+      <div class="feature-card"><div class="fc-icon">🧠</div><h4>Decision Engine</h4><p>Rule-based priority-weighted autonomous behavior system</p></div>
+      <div class="feature-card"><div class="fc-icon">🛰️</div><h4>GPS Waypoint System</h4><p>Pre-planned routes, POI navigation, zone detection, geofencing</p></div>
+      <div class="feature-card"><div class="fc-icon">📡</div><h4>Dual ESP32 + WiFi</h4><p>All devices on SSID SANJEEVI — UDP :9000/:9001/:9002/:5000</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="inner">
+
+<!-- ──────── SECTION 2: ARCHITECTURE ──────── -->
+<section id="architecture">
+  <div class="section-header">
+    <div class="section-num">02</div>
+    <h2>System <span>Architecture</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <h3>2.1 System Overview</h3>
+  <p>The system uses a <strong>distributed processing architecture</strong> with all devices on the same Wi-Fi network (<code>SANJEEVI</code>). A <strong>Laptop</strong> runs the brain (YOLOv8, decision engine, sensor fusion), a <strong>Raspberry Pi 5</strong> streams camera video over UDP, and two <strong>ESP32</strong> units manage real-time motor control (via 2× TB6612FNG for 4 motors) and ultrasonic sensing.</p>
+
+  <div class="diagram">
+<span class="box">┌────────────────────────────────────────────────────────────────┐</span>
+<span class="box">│                 <span class="label">SAME WiFi (SANJEEVI)</span>                          │</span>
+<span class="box">│              (Phone Hotspot / Router)                           │</span>
+<span class="box">└────────────────────────────────────────────────────────────────┘</span>
+<span class="arrow">         │                    │                    │</span>
+<span class="arrow">         ▼                    ▼                    ▼</span>
+<span class="box">┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐</span>
+<span class="box">│  <span class="label">ESP32 #1</span>       │  │  <span class="label">ESP32 #2</span>       │  │  <span class="label">Raspberry Pi 5</span>   │</span>
+<span class="box">│ Motor Controller│  │ Ultrasonic Sensor│  │   Camera Sender     │</span>
+<span class="box">│                 │  │                 │  │                     │</span>
+<span class="box">│ 4 motors/TB6612FNG│  │ HC-SR04         │  │ Streams 640×480     │</span>
+<span class="box">│ Web UI :8080    │  │ TRIG=GPIO21     │  │ JPEG over UDP :5000 │</span>
+<span class="box">│ UDP :9000/:9001 │  │ ECHO=GPIO18     │  │                     │</span>
+<span class="box">│ UDP Ultra :9002 │  │ UDP :9002       │  │                     │</span>
+<span class="box">└────────┬────────┘  └────────┬────────┘  └─────────────────────┘</span>
+<span class="arrow">         │                     │                     │</span>
+<span class="arrow">         │  UDP :9000          │                     │</span>
+<span class="arrow">         │  throttle:steer     │                     │</span>
+<span class="arrow">         │                     │  HTTP / UDP :9002   │</span>
+<span class="arrow">         │  ← "ULTRA:XX.XXcm" │                     │</span>
+<span class="arrow">         │                     │                     │</span>
+<span class="arrow">         │  UDP :9001          │                     │</span>
+<span class="arrow">         │  → STATUS broadcast │                     │</span>
+<span class="arrow">         ▼                     ▼                     ▼</span>
+<span class="box">┌────────────────────────────────────────────────────────────────┐</span>
+<span class="box">│                 <span class="label">LAPTOP (Controller/Brain)</span>                      │</span>
+<span class="box">│  - YOLOv8 object detection on video stream (UDP :5000)        │</span>
+<span class="box">│  - Sensor fusion (ultrasonic &lt; 30cm → priority)              │</span>
+<span class="box">│  - Sends throttle:steering via UDP :9000                      │</span>
+<span class="box">│  - Receives ESP32 status via UDP :9001                        │</span>
+<span class="box">│  - Receives ultrasonic data via UDP :9002                     │</span>
+<span class="box">│  - Modern OpenCV dashboard with info overlay                  │</span>
+<span class="box">└────────────────────────────────────────────────────────────────┘</span>
+  </div>
+
+  <h3>2.2 Component Interaction Flow</h3>
+  <div class="diagram">
+<span class="label">Physical World</span>
+     <span class="arrow">│</span>
+     <span class="arrow">▼</span>
+<span class="box">┌──────────────────────┐     ┌──────────────────────┐</span>
+<span class="box">│  <span class="label">Pi 5 Camera</span>         │────►│  <span class="label">Laptop (Brain)</span>    │</span>
+<span class="box">│  (UDP :5000 stream)  │     │                      │</span>
+<span class="box">└──────────────────────┘     │  YOLOv8 Detection    │</span>
+<span class="arrow">                             │  Sensor Fusion       │</span>
+<span class="box">┌──────────────────────┐     │  Decision Engine     │</span>
+<span class="box">│  <span class="label">ESP32 #2 Ultrasonic</span>│────►│  Motor Commands     │</span>
+<span class="box">│  (UDP :9002)         │     └──────────┬───────────┘</span>
+<span class="box">└──────────────────────┘                │</span>
+<span class="arrow">                                         │ UDP :9000</span>
+<span class="arrow">                                         ▼</span>
+<span class="box">┌──────────────────────┐     ┌──────────────────────┐</span>
+<span class="box">│  <span class="label">ESP32 #1 Motor Ctrl</span>│◄────│  UDP :9000           │</span>
+<span class="box">│  (2x TB6612FNG/4 motors)│     │  throttle:steering   │</span>
+<span class="box">└──────────────────────┘     └──────────────────────┘</span>
+<span class="arrow">        │ UDP :9001 (STATUS)</span>
+<span class="arrow">        ▼</span>
+<span class="box">┌──────────────────────────────────────────────────┐</span>
+<span class="box">│  Digital Twin / Dashboard (Flask on laptop)      │</span>
+<span class="box">└──────────────────────────────────────────────────┘</span>
+  </div>
+  </div>
+</section>
+
+<!-- ──────── SECTION 3: HARDWARE ──────── -->
+<section id="hardware">
+  <div class="section-header">
+    <div class="section-num">03</div>
+    <h2>Hardware <span>Components</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <h3>3.1 Bill of Materials</h3>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Component</th><th>Description</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Raspberry Pi 5</td><td>Camera processor</td><td>Runs <code>pi_camera_v2.py</code></td></tr>
+      <tr><td>ESP32 #1</td><td>Motor Controller</td><td>Runs <code>esp32_motor_controller.ino</code></td></tr>
+      <tr><td>ESP32 #2</td><td>Ultrasonic Sensor</td><td>Runs <code>esp32_ultrasonic.ino</code></td></tr>
+      <tr><td>HC-SR04</td><td>Ultrasonic module</td><td>TRIG=GPIO21, ECHO=GPIO18, 5V power</td></tr>
+      <tr><td>2× TB6612FNG</td><td>Motor drivers</td><td>4 channels total (left/right per driver)</td></tr>
+      <tr><td>4× DC Motors</td><td>Robot drive</td><td>Differential steering (skid-steer)</td></tr>
+      <tr><td>Pi Camera / USB Webcam</td><td>Vision</td><td>640×480, 30 FPS</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>3.2 Raspberry Pi 5 — Dedicated Camera Streamer</h3>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Component</th><th>Specification</th></tr></thead>
+    <tbody>
+      <tr><td>Model</td><td>Raspberry Pi 5</td></tr>
+      <tr><td>OS</td><td>Raspberry Pi OS (Debian-based)</td></tr>
+      <tr><td>Role</td><td>Dedicated camera streamer — captures 640×480 video, JPEG (quality 75%), UDP to laptop :5000</td></tr>
+      <tr><td>Camera</td><td>Pi Camera v2 (CSI, 8MP) or USB Webcam</td></tr>
+      <tr><td>Frame Format</td><td><code>[4-byte size][JPEG data]</code> over UDP</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="code-block">
+    <div class="code-lang">Python</div>
+    <pre><span class="cm"># Pi 5: pi_camera_v2.py — captures & streams</span>
+cap = cv2.VideoCapture(<span class="num">0</span>)           <span class="cm"># 640×480, ~30 FPS</span>
+<span class="kw">while</span> <span class="kw">True</span>:
+    _, frame = cap.read()
+    _, jpeg = cv2.imencode(<span class="str">'.jpg'</span>, frame, [<span class="num">95</span>])
+    size = len(jpeg).to_bytes(<span class="num">4</span>, <span class="str">'big'</span>)
+    sock.sendto(size + jpeg.tobytes(), (LAPTOP_IP, <span class="num">5000</span>))</pre>
+  </div>
+
+  <h3>3.3 ESP32 #1 — Motor Controller</h3>
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">⚡</div>
+      <h4>Motor Controller Specs</h4>
+      <p>WiFi Station mode (SSID: SANJEEVI). Web UI on :8080. UDP :9000 (commands), :9001 (status broadcast), :9002 (ultrasonic receive). 2× TB6612FNG for 4 motors. Brownout detection disabled. 500ms command timeout. WiFi auto-reconnect every 5s.</p>
+    </div>
+  </div>
+
+  <h3>3.4 ESP32 #2 — Ultrasonic Sensor</h3>
+  <div class="cards">
+    <div class="card">
+      <div class="card-icon">📡</div>
+      <h4>Ultrasonic Specs</h4>
+      <p>HC-SR04 (2–400cm). Reads every 200ms. Sends via HTTP GET to ESP32 #1 (<code>/distance?value=XX</code>) or UDP :9002 (<code>ULTRA:25.50</code>). TRIG=GPIO21, ECHO=GPIO18.</p>
+    </div>
+  </div>
+
+  <h3>3.5 Motor System</h3>
+  <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+    <div class="card"><h4>Drivers</h4><p>2× TB6612FNG (dual H-bridge)</p></div>
+    <div class="card"><h4>Motors</h4><p>4× DC motors (differential)</p></div>
+    <div class="card"><h4>Control</h4><p>PWM + direction pins</p></div>
+    <div class="card"><h4>Power</h4><p>7.4V LiPo (separate from Pi)</p></div>
+  </div>
+
+  <h3>3.6 Sensor Suite</h3>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Sensor</th><th>Interface</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>Pi Camera v2 / USB Webcam</td><td>CSI / USB</td><td>Video stream for YOLOv8 detection</td></tr>
+      <tr><td>HC-SR04 Ultrasonic</td><td>GPIO (ESP32 #2)</td><td>Obstacle distance measurement</td></tr>
+      <tr><td>USB GPS Module</td><td>UART (USB)</td><td>Position tracking, waypoint navigation</td></tr>
+      <tr><td>LiDAR (optional)</td><td>UART/I2C</td><td>Advanced depth mapping (planned)</td></tr>
+    </tbody>
+  </table>
+  </div>
+  </div>
+</section>
+
+<!-- ──────── SECTION 4: SOFTWARE ──────── -->
+<section id="software">
+  <div class="section-header">
+    <div class="section-num">04</div>
+    <h2>Software <span>Components</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <h3>4.1 Laptop — The Brain (<code>robot_car_v2_modern.py</code>)</h3>
+  <div class="cards">
+    <div class="card"><div class="card-icon">📹</div><h4>Receive Video</h4><p>UDP port :5000 from Pi 5, decode JPEG frames</p></div>
+    <div class="card"><div class="card-icon">🔍</div><h4>YOLOv8 Detection</h4><p>Vehicles, persons, traffic signs — distance from bounding box</p></div>
+    <div class="card"><div class="card-icon">🧩</div><h4>Sensor Fusion</h4><p>Ultrasonic priority &lt; 30cm, YOLO bbox distance &gt; 30cm</p></div>
+    <div class="card"><div class="card-icon">📨</div><h4>Send Commands</h4><p>UDP :9000 — throttle:steering format to ESP32 #1</p></div>
+    <div class="card"><div class="card-icon">📊</div><h4>Status Reception</h4><p>UDP :9001 — ESP32 status, UDP :9002 — ultrasonic data</p></div>
+    <div class="card"><div class="card-icon">🖥️</div><h4>OpenCV Dashboard</h4><p>YOLO overlays, distance indicators, FPS, controls</p></div>
+  </div>
+
+  <h4>Decision Tree (Ultrasonic Priority)</h4>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Distance Range</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td>&lt; 15 cm</td><td>Immediate STOP (emergency)</td></tr>
+      <tr><td>15–30 cm</td><td>Slow reverse + turn</td></tr>
+      <tr><td>30–50 cm</td><td>Slow forward with caution</td></tr>
+      <tr><td>&gt; 50 cm</td><td>Normal operation (YOLO-based)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>4.2 Core Modules (<code>core/</code>)</h3>
+  <div class="cards">
+    <div class="card"><div class="card-icon">👁️</div><h4><code>perception_engine.py</code></h4><p>YOLOv8 object detection + ultrasonic distance fusion. Threaded capture with frame queue.</p></div>
+    <div class="card"><div class="card-icon">🌍</div><h4><code>perception_engine_gps.py</code></h4><p>Extended perception with GPS integration — maps detections to coordinates.</p></div>
+  </div>
+
+  <h3>4.3 Decision Engine (<code>decision_engine/core/</code>)</h3>
+  <div class="cards">
+    <div class="card"><div class="card-icon">🧠</div><h4><code>decision_maker.py</code></h4><p>Central pipeline: perception + GPS + mode → motor commands + mode transitions</p></div>
+    <div class="card"><div class="card-icon">📋</div><h4><code>rule_engine.py</code></h4><p>Deterministic rules, safety overrides, mode-specific rule sets, priority arbitration</p></div>
+  </div>
+
+  <h3>4.4 Main Entry Points</h3>
+  <div class="cards">
+    <div class="card"><div class="card-icon">▶️</div><h4><code>robot_car_v2_modern.py</code></h4><p>Laptop brain — main control loop with YOLO, fusion, OpenCV dashboard</p></div>
+    <div class="card"><div class="card-icon">📹</div><h4><code>pi_camera_v2.py</code></h4><p>Pi 5 camera UDP streamer</p></div>
+    <div class="card"><div class="card-icon">⚙️</div><h4><code>setup.bat</code></h4><p>Windows batch setup for dependencies</p></div>
+  </div>
+  </div>
+</section>
+
+<!-- ──────── SECTION 5: MODES ──────── -->
+<section id="modes">
+  <div class="section-header">
+    <div class="section-num">05</div>
+    <h2>Operating <span>Modes</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <div class="diagram" style="font-size:.68rem">
+<span class="label">                    ┌──────────────┐</span>
+<span class="label">                    │    Idle      │</span>
+<span class="arrow">                    └──────┬───────┘</span>
+<span class="arrow">                           │ mode select</span>
+<span class="arrow">         ┌─────────────────┼──────────────────┐</span>
+<span class="arrow">         │                 │                  │</span>
+<span class="box">    ┌────▼────┐     ┌─────▼──────┐     ┌─────▼──────┐</span>
+<span class="box">    │ Follow  │     │  Guidance  │     │  Delivery  │</span>
+<span class="box2">    │   Me    │     │            │     │            │</span>
+<span class="box">    └────┬────┘     └─────┬──────┘     └─────┬──────┘</span>
+<span class="arrow">         │                 │                  │</span>
+<span class="box">    ┌────▼────┐     ┌─────▼──────┐     ┌─────▼──────┐</span>
+<span class="box">    │ Summon  │     │  Escort    │     │  Auto-Park │</span>
+<span class="box">    └────┬────┘     └─────┬──────┘     └─────┬──────┘</span>
+<span class="arrow">         │                 │                  │</span>
+<span class="box3">    ┌────▼──────────────────▼──────────────────▼──────┐</span>
+<span class="box3">    │              Emergency Override                 │</span>
+<span class="box3">    │  (Crash Response / Obstacle Avoidance / Stop)   │</span>
+<span class="box3">    └─────────────────────┬───────────────────────────┘</span>
+<span class="arrow">                          │</span>
+<span class="label">                    ┌─────▼──────┐</span>
+<span class="label">                    │   Return   │</span>
+<span class="label">                    │   to Mode  │</span>
+<span class="label">                    └────────────┘</span>
+  </div>
+
+  <h3>Mode Table</h3>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Mode</th><th>File</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Follow Me</td><td><code>follow_me_mode.html</code></td><td>Tracks and follows a person</td></tr>
+      <tr><td>Guidance</td><td><code>guidance_mode.html</code></td><td>Guides user along a path</td></tr>
+      <tr><td>Summon</td><td><code>summon_mode.html</code></td><td>Robot comes to user's location</td></tr>
+      <tr><td>Delivery</td><td><code>delivery_mode.html</code></td><td>Autonomous delivery to waypoint</td></tr>
+      <tr><td>Escort</td><td><code>escort_mode.html</code></td><td>Escorts person/group</td></tr>
+      <tr><td>Ambulance Priority</td><td><code>ambulance_mode.html</code></td><td>Emergency lane clearance</td></tr>
+      <tr><td>Auto-Park</td><td><code>autopark_mode.html</code></td><td>Automatic parking</td></tr>
+      <tr><td>Crash Response</td><td><code>crash_response_mode.html</code></td><td>Post-collision protocol</td></tr>
+      <tr><td>Elder Assist</td><td><code>elder_assist_mode.html</code></td><td>Support for elderly users</td></tr>
+      <tr><td>Hospital Assist</td><td><code>hospital_assist_mode.html</code></td><td>Hospital navigation aid</td></tr>
+      <tr><td>Medical Delivery</td><td><code>medical_delivery_mode.html</code></td><td>Urgent medical transport</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p><strong>Mode Selection:</strong> Web UI (<code>index.html</code>) + Telegram Bot commands &bull; <strong>Launch:</strong> <code>START_MODES.bat</code></p>
+
+  <h3>Selection Logic</h3>
+  <ol class="ol">
+    <li><strong>User Command</strong> (Telegram/Web UI) — highest priority manual override</li>
+    <li><strong>Context Detection</strong> — crash → crash response, elderly → elder assist</li>
+    <li><strong>Scheduled Tasks</strong> — planned delivery routes</li>
+    <li><strong>GPS Proximity</strong> — hospital zone → hospital assist</li>
+  </ol>
+  </div>
+</section>
+
+<!-- ──────── SECTION 6: DECISION ENGINE ──────── -->
+<section id="decision">
+  <div class="section-header">
+    <div class="section-num">06</div>
+    <h2>Decision <span>Engine</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <div class="diagram">
+<span class="box">┌──────────────────────────────────────────┐</span>
+<span class="box">│      <span class="label">Decision Engine (Runs on Laptop)</span>         │</span>
+<span class="box">│  ┌────────────┐    ┌───────────────┐     │</span>
+<span class="box">│  │  Sensor    │    │   Mode        │     │</span>
+<span class="box">│  │  Input     │───►│   Context     │     │</span>
+<span class="box">│  │  Queue     │    │   Manager     │     │</span>
+<span class="box">│  └────────────┘    └───────┬───────┘     │</span>
+<span class="box">│  ┌─────────────────────────▼──────────┐  │</span>
+<span class="box">│  │         <span class="label">Rule Engine</span>                  │  │</span>
+<span class="box">│  │  ┌──────────┐  ┌──────────┐       │  │</span>
+<span class="box">│  │  │ Safety   │  │ Behavior │       │  │</span>
+<span class="box">│  │  │ Rules    │  │ Rules    │       │  │</span>
+<span class="box">│  │  └──────────┘  └──────────┘       │  │</span>
+<span class="box">│  │  ┌──────────┐  ┌──────────┐       │  │</span>
+<span class="box">│  │  │ Mode     │  │ Priority │       │  │</span>
+<span class="box">│  │  │ Rules    │  │ Arbiter  │       │  │</span>
+<span class="box">│  │  └──────────┘  └──────────┘       │  │</span>
+<span class="box">│  └────────────────────────────────────┘  │</span>
+<span class="box">│  ┌─────────────────▼──────────────────┐  │</span>
+<span class="box">│  │      Command Generator              │  │</span>
+<span class="box">│  │  (throttle:steering for ESP32)     │  │</span>
+<span class="box">│  └─────────────────┬──────────────────┘  │</span>
+<span class="box">└────────────────────┼─────────────────────┘</span>
+<span class="arrow">                     │ UDP :9000</span>
+<span class="box">              ┌──────▼──────┐</span>
+<span class="box">              │  ESP32 #1   │</span>
+<span class="box">              │  Motor Ctrl │</span>
+<span class="box">              └─────────────┘</span>
+  </div>
+
+  <h3>Priority Levels</h3>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Level</th><th>Type</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag tag-red">1</span></td><td>Collision Avoidance</td><td>Ultrasonic &lt; 15cm → STOP</td></tr>
+      <tr><td><span class="tag tag-amber">2</span></td><td>Emergency Override</td><td>Crash detected → HALT + alert</td></tr>
+      <tr><td><span class="tag tag-blue">3</span></td><td>Mode-Specific Task</td><td>Delivery: follow GPS waypoints</td></tr>
+      <tr><td><span class="tag tag-blue">4</span></td><td>Navigation</td><td>Standard path following</td></tr>
+      <tr><td><span class="tag tag-purple">5</span></td><td>Exploration</td><td>Random wander / patrol</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Safety Mechanisms</h3>
+  <div class="status-list">
+    <div class="status-item"><span class="status-icon">🛑</span> Hard stop if ultrasonic &lt; 15cm (emergency)</div>
+    <div class="status-item"><span class="status-icon">↩️</span> Slow reverse + turn at 15–30cm (caution zone)</div>
+    <div class="status-item"><span class="status-icon">🐢</span> Slow forward with caution at 30–50cm</div>
+    <div class="status-item"><span class="status-icon">⏱️</span> ESP32 stops motors after 500ms no command</div>
+    <div class="status-item"><span class="status-icon">📶</span> WiFi auto-reconnect every 5s if lost</div>
+    <div class="status-item"><span class="status-icon">⚡</span> Brownout detection disabled on ESP32 #1</div>
+  </div>
+  </div>
+</section>
+
+<!-- ──────── SECTION 7: GPS ──────── -->
+<section id="gps">
+  <div class="section-header">
+    <div class="section-num">07</div>
+    <h2>GPS &amp; Navigation <span>System</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <div class="cards">
+    <div class="card"><div class="card-icon">🛰️</div><h4>GPS Reader</h4><p>NMEA parser ($GPGGA, $GPRMC) from USB GPS at 9600 baud</p></div>
+    <div class="card"><div class="card-icon">🎯</div><h4>Waypoint Following</h4><p>Ordered GPS waypoints, configurable tolerance (default 3m)</p></div>
+    <div class="card"><div class="card-icon">📍</div><h4>POI / Zone Detection</h4><p>Named locations, configurable radius, geofenced mode triggers</p></div>
+    <div class="card"><div class="card-icon">🏠</div><h4>Return-to-Home</h4><p>Automatic return to configurable home base coordinates</p></div>
+  </div>
+
+  <h3>GPS Configuration</h3>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>GPS_PORT</code></td><td>"COM3" / "/dev/ttyACM0"</td><td>Serial port</td></tr>
+      <tr><td><code>GPS_BAUD</code></td><td>9600</td><td>Baud rate</td></tr>
+      <tr><td><code>WAYPOINT_TOLERANCE</code></td><td>3.0m</td><td>Waypoint arrival threshold</td></tr>
+      <tr><td><code>MAX_WAYPOINTS</code></td><td>50</td><td>Max route waypoints</td></tr>
+      <tr><td><code>ZONE_RADIUS</code></td><td>100m</td><td>POI detection radius</td></tr>
+    </tbody>
+  </table>
+  </div>
+  </div>
+</section>
+
+<!-- ──────── SECTION 8: DIGITAL TWIN ──────── -->
+<section id="digital-twin">
+  <div class="section-header">
+    <div class="section-num">08</div>
+    <h2>Digital <span>Twin</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <p>The Digital Twin creates a <strong>real-time synchronized virtual replica</strong> of the physical robot car, enabling remote monitoring, simulation, and debugging without physical access.</p>
+
+  <div class="cards">
+    <div class="card"><div class="card-icon">🖥️</div><h4><code>digital_twin_server.py</code></h4><p>Flask + WebSocket server. Endpoints: <code>/api/state</code>, <code>/api/command</code>, <code>/api/telemetry</code>. 50ms update interval.</p></div>
+    <div class="card"><div class="card-icon">🔗</div><h4><code>hardware_sync_bridge.py</code></h4><p>Bidirectional bridge: reads ESP32, sensors, GPS, camera — writes to twin state model.</p></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-lang">JSON</div>
+    <pre><span class="kw">{</span>
+  <span class="prop">"robot"</span>: <span class="kw">{</span>
+    <span class="prop">"position"</span>: <span class="kw">{</span><span class="prop">"x"</span>:<span class="num">0.0</span>,<span class="prop">"y"</span>:<span class="num">0.0</span>,<span class="prop">"z"</span>:<span class="num">0.0</span><span class="kw">}</span>,
+    <span class="prop">"rotation"</span>: <span class="kw">{</span><span class="prop">"yaw"</span>:<span class="num">0.0</span>,<span class="prop">"pitch"</span>:<span class="num">0.0</span>,<span class="prop">"roll"</span>:<span class="num">0.0</span><span class="kw">}</span>,
+    <span class="prop">"speed"</span>:<span class="num">0.0</span>,<span class="prop">"throttle"</span>:<span class="num">0</span>,<span class="prop">"steering"</span>:<span class="num">0.0</span>
+  <span class="kw">}</span>,
+  <span class="prop">"sensors"</span>: <span class="kw">{</span>
+    <span class="prop">"ultrasonic"</span>: <span class="kw">{</span><span class="prop">"distance"</span>:<span class="num">45.2</span>,<span class="prop">"timestamp"</span>:<span class="num">1234567890</span><span class="kw">}</span>,
+    <span class="prop">"gps"</span>: <span class="kw">{</span><span class="prop">"lat"</span>:<span class="num">12.34</span>,<span class="prop">"lon"</span>:<span class="num">56.78</span>,<span class="prop">"altitude"</span>:<span class="num">100.0</span>,<span class="prop">"speed"</span>:<span class="num">0.5</span><span class="kw">}</span>
+  <span class="kw">}</span>,
+  <span class="prop">"status"</span>: <span class="kw">{</span>
+    <span class="prop">"mode"</span>:<span class="str">"autonomous"</span>,<span class="prop">"battery"</span>:<span class="num">85.0</span>,
+    <span class="prop">"last_command"</span>:<span class="str">"150:0.02"</span>,<span class="prop">"uptime"</span>:<span class="num">3600</span>
+  <span class="kw">}</span>
+<span class="kw">}</span></pre>
+  </div>
+  </div>
+</section>
+
+<!-- ──────── SECTION 9: DASHBOARD ──────── -->
+<section id="dashboard">
+  <div class="section-header">
+    <div class="section-num">09</div>
+    <h2>Dashboard &amp; <span>Visualization</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <div class="cards">
+    <div class="card"><div class="card-icon">📊</div><h4>OpenCV Dashboard</h4><p>Live feed with YOLO overlays, distance indicator, throttle/steering gauge, FPS counter, detection stats</p></div>
+    <div class="card"><div class="card-icon">📐</div><h4>Bento Grid (<code>bento.html</code>)</h4><p>Responsive card-based layout, dark theme, gradient accents, animated transitions</p></div>
+    <div class="card"><div class="card-icon">🎲</div><h4>3D Visualization</h4><p>Three.js robot model with orientation, GPS path history, orbit controls</p></div>
+    <div class="card"><div class="card-icon">🌐</div><h4>Flask Web Dashboard</h4><p>Optional Flask server for phone control alongside main OpenCV UI</p></div>
+  </div>
+  </div>
+</section>
+
+<!-- ──────── SECTION 10: TELEGRAM ──────── -->
+<section id="telegram">
+  <div class="section-header">
+    <div class="section-num">10</div>
+    <h2>Telegram Bot &amp; <span>Remote Control</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <p>Remote command and control via any Telegram client. Runs as a standalone Python process on the laptop or Raspberry Pi.</p>
+
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Command</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>/start</code></td><td>Welcome + mode selection</td></tr>
+      <tr><td><code>/status</code></td><td>Robot state, battery, GPS position</td></tr>
+      <tr><td><code>/photo</code></td><td>Capture and send real-time photo</td></tr>
+      <tr><td><code>/mode &lt;name&gt;</code></td><td>Switch operating mode</td></tr>
+      <tr><td><code>/goto &lt;lat&gt;,&lt;lon&gt;</code></td><td>Navigate to GPS coordinates</td></tr>
+      <tr><td><code>/stop</code></td><td>Emergency stop</td></tr>
+      <tr><td><code>/home</code></td><td>Return to base</td></tr>
+      <tr><td><code>/speed &lt;0-255&gt;</code></td><td>Set movement speed</td></tr>
+      <tr><td><code>/detect</code></td><td>Run object detection</td></tr>
+      <tr><td><code>/ping</code></td><td>Connection test</td></tr>
+    </tbody>
+  </table>
+  </div>
+  </div>
+</section>
+
+<!-- ──────── SECTION 11: PERCEPTION ──────── -->
+<section id="perception">
+  <div class="section-header">
+    <div class="section-num">11</div>
+    <h2>Perception &amp; <span>Computer Vision</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <div class="cards">
+    <div class="card"><div class="card-icon">🔍</div><h4>YOLOv8 on Laptop</h4><p>Video from Pi 5 via UDP :5000. 80 COCO classes. ~15-30 FPS with GPU. Confidence threshold: 0.5</p></div>
+    <div class="card"><div class="card-icon">📏</div><h4>Distance Estimation</h4><p>From bounding box: <code>distance = 1.5 × h_frame × 0.8 / bbox_h</code></p></div>
+    <div class="card"><div class="card-icon">🧩</div><h4>Sensor Fusion</h4><p>Ultrasonic priority &lt; 30cm (more reliable). YOLO bbox distance for &gt; 30cm objects.</p></div>
+  </div>
+
+  <div class="diagram">
+<span class="label">YOLOv8 Detections (Laptop)</span> <span class="arrow">──┐</span>
+<span class="label">(UDP :5000 from Pi 5)</span>          <span class="arrow">│</span>
+                              <span class="arrow">├──►</span> <span class="box">Sensor Fusion</span> <span class="arrow">──►</span> <span class="box">Decision Engine</span>
+<span class="label">Ultrasonic Distance</span>   <span class="arrow">──┘</span>
+<span class="label">(UDP :9002, &lt;30cm)</span>     <span class="arrow">│</span>
+                              <span class="arrow">│</span>
+<span class="label">GPS Position</span>            <span class="arrow">──►</span> <span class="box">Spatial Context</span>
+  </div>
+  </div>
+</section>
+
+<!-- ──────── SECTION 12: COMMS ──────── -->
+<section id="comms">
+  <div class="section-header">
+    <div class="section-num">12</div>
+    <h2>Communication <span>Protocols</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <p>All devices connect to the <strong>same Wi-Fi network</strong> (SSID: <code>SANJEEVI</code> — phone hotspot or router).</p>
+
+  <div class="cards">
+    <div class="card"><div class="card-icon">📹</div><h4>Pi 5 → Laptop (UDP :5000)</h4><p><code>[4-byte size][JPEG data]</code> — 640×480 video at ~30 FPS</p></div>
+    <div class="card"><div class="card-icon">📨</div><h4>Laptop → ESP32 #1 (UDP :9000)</h4><p><code>throttle:steering</code> — e.g. <code>150:0.00</code> (forward straight)</p></div>
+    <div class="card"><div class="card-icon">📡</div><h4>ESP32 #1 → Laptop (UDP :9001)</h4><p><code>STATUS:AUTO:150:0.02:25.5</code> — mode, throttle, steering, battery</p></div>
+    <div class="card"><div class="card-icon">📏</div><h4>ESP32 #2 → ESP32 #1 (UDP :9002)</h4><p><code>ULTRA:45.23</code> — distance in cm, 2 decimal places</p></div>
+  </div>
+
+  <h3>Network Services</h3>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Service</th><th>Port</th><th>Protocol</th><th>Direction</th></tr></thead>
+    <tbody>
+      <tr><td>Video Stream</td><td>5000</td><td>UDP</td><td>Pi 5 → Laptop</td></tr>
+      <tr><td>Motor Commands</td><td>9000</td><td>UDP</td><td>Laptop → ESP32 #1</td></tr>
+      <tr><td>Status Broadcast</td><td>9001</td><td>UDP</td><td>ESP32 #1 → Laptop</td></tr>
+      <tr><td>Ultrasonic Data</td><td>9002</td><td>UDP</td><td>ESP32 #2 → ESP32 #1/Laptop</td></tr>
+      <tr><td>ESP32 Web UI</td><td>8080</td><td>HTTP</td><td>Browser → ESP32 #1</td></tr>
+      <tr><td>Flask Dashboard</td><td>5000</td><td>HTTP</td><td>Laptop → Browser</td></tr>
+      <tr><td>Telegram Bot</td><td>443</td><td>HTTPS</td><td>Bot → API (outbound)</td></tr>
+    </tbody>
+  </table>
+  </div>
+  </div>
+</section>
+
+<!-- ──────── SECTION 13: CONFIG ──────── -->
+<section id="config">
+  <div class="section-header">
+    <div class="section-num">13</div>
+    <h2>Configuration &amp; <span>Settings</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <div class="cards">
+    <div class="card"><div class="card-icon">⚙️</div><h4><code>config/settings.py</code></h4><p>Camera (640×480, 30fps), motor (min 80, max 255), USONIC threshold 50cm / emergency 15cm, UDP ports 9000/9001/9002/5000, YOLO config</p></div>
+    <div class="card"><div class="card-icon">🛰️</div><h4><code>config/gps_settings.py</code></h4><p>Port, baud 9600, home coordinates (Bangalore default), waypoint tolerance 3m, zone radius 100m, max 50 waypoints</p></div>
+  </div>
+  </div>
+</section>
+
+<!-- ──────── SECTION 14: SETUP ──────── -->
+<section id="setup">
+  <div class="section-header">
+    <div class="section-num">14</div>
+    <h2>Setup &amp; <span>Deployment</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <div class="cards">
+    <div class="card"><div class="card-icon">🖥️</div><h4>Hardware</h4><p>Pi 5, ESP32 ×2, Pi Camera v2 / USB Webcam, HC-SR04, GPS USB, 2× TB6612FNG, 4× DC motors, 7.4V LiPo</p></div>
+    <div class="card"><div class="card-icon">📦</div><h4>Software</h4><p>Python 3.8+ (laptop), pip, PlatformIO (ESP32), OpenCV, YOLOv8, Raspberry Pi OS (Pi 5)</p></div>
+  </div>
+
+  <h3>Quick Setup (Laptop)</h3>
+  <div class="code-block">
+    <div class="code-lang">Batch</div>
+    <pre><span class="cm">:: On laptop — install dependencies & run</span>
+pip install -r requirements.txt
+python robot_car_v2_modern.py</pre>
+  </div>
+
+  <h3>ESP32 Flashing Notes</h3>
+  <ul class="ul">
+    <li>Configure Wi-Fi credentials: <strong>SSID: SANJEEVI</strong>, password, target laptop IP</li>
+    <li>ESP32 #1: Flash <code>esp32_motor_controller.ino</code> — ports :9000/:9001/:9002</li>
+    <li>ESP32 #2: Flash <code>esp32_ultrasonic.ino</code> — port :9002</li>
+    <li><strong>Critical:</strong> Disable brownout detection on ESP32 #1 to prevent WiFi dropout during motor spinup</li>
+    <li>ESP32 #1 auto-reconnects WiFi every 5s if connection lost</li>
+  </ul>
+
+  <h3>Pi 5 Setup</h3>
+  <ul class="ul">
+    <li>Install Raspberry Pi OS (desktop or lite)</li>
+    <li>Install Python, OpenCV, numpy</li>
+    <li>Enable Camera interface (<code>raspi-config</code>)</li>
+    <li>Run: <code>python pi_camera_v2.py</code></li>
+    <li>Set static IP or DHCP reservation</li>
+  </ul>
+
+  <h3>Startup Sequence</h3>
+  <ol class="ol">
+    <li>Power on ESP32 boards (wait ~10s for WiFi to <code>SANJEEVI</code>)</li>
+    <li>Power on Pi 5 → auto-starts <code>pi_camera_v2.py</code></li>
+    <li>On laptop: <code>python robot_car_v2_modern.py</code></li>
+    <li>Wait for "Connected" confirmation in terminal</li>
+    <li>Use arrow keys or gamepad for manual control</li>
+    <li>Switch to autonomous mode via Telegram <code>/mode</code> or key press</li>
+  </ol>
+
+  <h3>Pi 5 Headless Setup</h3>
+  <p>Refer to <code>jetson_nano_headless_inst.md</code> for headless configuration guidance:</p>
+  <ul class="ul">
+    <li>Enable SSH, configure Wi-Fi, set static IP</li>
+    <li>Enable Camera interface (<code>raspi-config</code>)</li>
+    <li>Auto-start camera script via systemd or cron</li>
+  </ul>
+  </div>
+</section>
+
+<!-- ──────── SECTION 15: FILES ──────── -->
+<section id="files">
+  <div class="section-header">
+    <div class="section-num">15</div>
+    <h2>Complete <span>File Structure</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <div class="file-tree">
+<span class="folder">combined_final_new_gps/combined_proj_folder/</span>
+├── <span class="file">main.py</span>                          <span class="comment"># Primary orchestration entry point</span>
+├── <span class="file">setup.bat</span>                        <span class="comment"># Windows setup script</span>
+├── <span class="file">requirements.txt</span>                 <span class="comment"># Python dependencies</span>
+├── <span class="file">Role.md</span>                          <span class="comment"># System role definition</span>
+│
+├── <span class="folder">config/</span>
+│   ├── <span class="file">settings.py</span>                  <span class="comment"># Main config (ports 9000/9001/9002/5000)</span>
+│   └── <span class="file">gps_settings.py</span>             <span class="comment"># GPS-specific configuration</span>
+│
+├── <span class="folder">core/</span>
+│   ├── <span class="file">perception_engine.py</span>         <span class="comment"># YOLO + ultrasonic fusion</span>
+│   └── <span class="file">perception_engine_gps.py</span>     <span class="comment"># Perception with GPS integration</span>
+│
+├── <span class="folder">decision_engine/</span>
+│   └── <span class="folder">core/</span>
+│       ├── <span class="file">decision_maker.py</span>        <span class="comment"># Central decision pipeline</span>
+│       └── <span class="file">rule_engine.py</span>           <span class="comment"># Rule-based behavior engine</span>
+│
+├── <span class="folder">hardware/</span>
+│   ├── <span class="file">hardware_integration.py</span>      <span class="comment"># Hardware abstraction layer</span>
+│   ├── <span class="file">gps_reader.py</span>                <span class="comment"># NMEA GPS parser</span>
+│   └── <span class="file">pi_sender.py</span>                 <span class="comment"># UDP command sender to ESP32</span>
+│
+├── <span class="folder">dashboard/</span>
+│   ├── <span class="file">gps_dashboard.py</span>             <span class="comment"># Flask GPS monitoring</span>
+│   └── <span class="file">gps_dashboard_3d.py</span>          <span class="comment"># Three.js 3D visualization</span>
+│
+├── <span class="folder">hardware_setup/</span>
+│   ├── <span class="folder">check_motors/</span>
+│   │   └── <span class="file">check_motors.ino</span>
+│   ├── <span class="folder">digital_twin/</span>
+│   │   ├── <span class="file">digital_twin_server.py</span>
+│   │   ├── <span class="file">hardware_sync_bridge.py</span>
+│   │   └── <span class="file">README_DIGITAL_TWIN.md</span>
+│   ├── <span class="folder">robot_car_and_pi_v2_2esp/</span>
+│   │   ├── <span class="file">esp32_motor_controller/</span>
+│   │   │   └── <span class="file">esp32_motor_controller.ino</span>
+│   │   ├── <span class="file">esp32_ultrasonic_udp_v1/</span>
+│   │   │   └── <span class="file">esp32_ultrasonic_udp_v1.ino</span>
+│   │   ├── <span class="file">pi_camera_v2.py</span>           <span class="comment"># Pi 5 camera UDP streamer</span>
+│   │   └── <span class="file">robot_car_v2_modern.py</span>    <span class="comment"># Laptop brain (YOLO+fusion)</span>
+│   ├── <span class="folder">telegram_bot/</span>
+│   │   ├── <span class="file">telegram_bot_main.py</span>
+│   │   └── <span class="file">yolo_detector.py</span>
+│   └── <span class="folder">modes/</span>
+│       ├── <span class="file">follow_me_mode.html</span>
+│       ├── <span class="file">guidance_mode.html</span>
+│       └── <span class="file">[... 9 more modes]</span>
+│
+├── <span class="file">bento.html</span>                        <span class="comment"># Bento-grid dashboard</span>
+├── <span class="file">DECISION_ENGINE_SUMMARY.md</span>
+├── <span class="file">new_plan_gps.md</span>
+├── <span class="file">yolov8m.pt</span>                        <span class="comment"># YOLOv8 medium model</span>
+├── <span class="file">yolov8n.pt</span>                        <span class="comment"># YOLOv8 nano model</span>
+└── <span class="file">__init__.py</span>
+  </div>
+  </div>
+</section>
+
+<!-- ──────── SECTION 16: ROADMAP ──────── -->
+<section id="roadmap">
+  <div class="section-header">
+    <div class="section-num">16</div>
+    <h2>Development <span>Roadmap</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <div class="roadmap-cat">
+    <h4><span style="color:var(--success)">✅</span> Completed</h4>
+    <div class="status-list">
+      <div class="status-item"><span class="status-icon">✅</span> Dual-ESP32 architecture (2× TB6612FNG, 4 motors)</div>
+      <div class="status-item"><span class="status-icon">✅</span> YOLOv8 detection on laptop (Pi 5 video feed)</div>
+      <div class="status-item"><span class="status-icon">✅</span> GPS waypoint navigation system</div>
+      <div class="status-item"><span class="status-icon">✅</span> Decision engine with priority arbitration</div>
+      <div class="status-item"><span class="status-icon">✅</span> Multi-mode OS (11 modes)</div>
+      <div class="status-item"><span class="status-icon">✅</span> Telegram bot remote control</div>
+      <div class="status-item"><span class="status-icon">✅</span> Digital twin with 3D visualization</div>
+      <div class="status-item"><span class="status-icon">✅</span> Web dashboard with GPS map</div>
+      <div class="status-item"><span class="status-icon">✅</span> Pi 5 camera UDP streamer</div>
+      <div class="status-item"><span class="status-icon">✅</span> Sensor fusion (ultrasonic + YOLO bbox)</div>
+    </div>
+  </div>
+
+  <div class="roadmap-cat">
+    <h4><span style="color:var(--warn)">🔄</span> In Progress</h4>
+    <div class="status-list">
+      <div class="status-item"><span class="status-icon">🔄</span> 3D SLAM mapping integration</div>
+      <div class="status-item"><span class="status-icon">🔄</span> Advanced lane detection refinement</div>
+      <div class="status-item"><span class="status-icon">🔄</span> Intelligent road system</div>
+    </div>
+  </div>
+
+  <div class="roadmap-cat">
+    <h4><span style="color:var(--accent2)">📋</span> Planned</h4>
+    <div class="status-list" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))">
+      <div class="status-item"><span class="status-icon">📋</span> LiDAR integration</div>
+      <div class="status-item"><span class="status-icon">📋</span> Multi-robot mesh networking</div>
+      <div class="status-item"><span class="status-icon">📋</span> ML for adaptive mode transitions</div>
+      <div class="status-item"><span class="status-icon">📋</span> Voice command interface</div>
+      <div class="status-item"><span class="status-icon">📋</span> Dynamic path re-planning</div>
+      <div class="status-item"><span class="status-icon">📋</span> Edge AI (TFLite / ONNX)</div>
+      <div class="status-item"><span class="status-icon">📋</span> Battery management + auto-charge</div>
+      <div class="status-item"><span class="status-icon">📋</span> Cloud fleet management</div>
+    </div>
+  </div>
+  </div>
+</section>
+
+<!-- ──────── APPENDIX A ──────── -->
+<section id="appendix-a">
+  <div class="section-header">
+    <div class="section-num">A</div>
+    <h2>Network <span>Topology</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <div class="network-diagram">
+    <div class="network-node internet">🌐 Internet</div>
+    <div class="network-arrow">│</div>
+    <div class="network-node router">📶 SSID: SANJEEVI (Hotspot/Router)</div>
+    <div class="network-arrow">├──────────────────┬──────────────────┬──────────────────┐</div>
+    <div class="network-row">
+      <div class="network-node device">📱 Phone (Telegram)</div>
+      <div class="network-node device">💻 Laptop (Brain)<br><small>:5000 rcv, :9000 snd<br>:9001 rcv, :9002 rcv</small></div>
+      <div class="network-node device">🖥️ Pi 5 (Camera)<br><small>:5000 snd</small></div>
+    </div>
+    <div class="network-arrow">│&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;├──────────┐</div>
+    <div class="network-row">
+      <div class="network-node endpoint">⚡ ESP32 #1 (Motor)<br><small>:9000 rcv, :9001 snd<br>:9002 rcv, :8080 Web</small></div>
+      <div class="network-node endpoint">📡 ESP32 #2 (Usonic)<br><small>:9002 snd</small></div>
+    </div>
+  </div>
+  </div>
+</section>
+
+<!-- ──────── APPENDIX B ──────── -->
+<section id="appendix-b">
+  <div class="section-header">
+    <div class="section-num">B</div>
+    <h2>Pinout <span>Reference</span></h2>
+    <div class="line"></div>
+  </div>
+  <div class="section-body">
+
+  <h3>ESP32 #1 — Motor Controller (2× TB6612FNG, 4 Motors)</h3>
+
+  <h4>Driver 1 (LEFT pair of motors)</h4>
+  <div class="table-wrap">
+  <table class="pin-table">
+    <thead><tr><th>ESP32 Pin</th><th>TB6612FNG #1</th><th>Function</th></tr></thead>
+    <tbody>
+      <tr><td>GPIO 26</td><td>AIN1</td><td>Left Forward Motor — Direction 1</td></tr>
+      <tr><td>GPIO 27</td><td>AIN2</td><td>Left Forward Motor — Direction 2</td></tr>
+      <tr><td>GPIO 25</td><td>PWMA</td><td>Left Forward Motor — Speed (PWM)</td></tr>
+      <tr><td>GPIO 14</td><td>BIN1</td><td>Left Reverse Motor — Direction 1</td></tr>
+      <tr><td>GPIO 13</td><td>BIN2</td><td>Left Reverse Motor — Direction 2</td></tr>
+      <tr><td>GPIO 33</td><td>PWMB</td><td>Left Reverse Motor — Speed (PWM)</td></tr>
+      <tr><td>GPIO 32</td><td>STBY</td><td>Standby — HIGH = enabled</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h4>Driver 2 (RIGHT pair of motors)</h4>
+  <div class="table-wrap">
+  <table class="pin-table">
+    <thead><tr><th>ESP32 Pin</th><th>TB6612FNG #2</th><th>Function</th></tr></thead>
+    <tbody>
+      <tr><td>GPIO 4</td><td>AIN1</td><td>Right Forward Motor — Direction 1</td></tr>
+      <tr><td>GPIO 5</td><td>AIN2</td><td>Right Forward Motor — Direction 2</td></tr>
+      <tr><td>GPIO 18</td><td>PWMA</td><td>Right Forward Motor — Speed (PWM)</td></tr>
+      <tr><td>GPIO 19</td><td>BIN1</td><td>Right Reverse Motor — Direction 1</td></tr>
+      <tr><td>GPIO 21</td><td>BIN2</td><td>Right Reverse Motor — Direction 2</td></tr>
+      <tr><td>GPIO 22</td><td>PWMB</td><td>Right Reverse Motor — Speed (PWM)</td></tr>
+      <tr><td>GPIO 23</td><td>STBY</td><td>Standby — HIGH = enabled</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>ESP32 #2 — Ultrasonic Sensor</h3>
+  <div class="table-wrap">
+  <table class="pin-table">
+    <thead><tr><th>ESP32 Pin</th><th>HC-SR04</th><th>Function</th></tr></thead>
+    <tbody>
+      <tr><td>GPIO 21</td><td>Trig</td><td>Trigger pulse (10µs)</td></tr>
+      <tr><td>GPIO 18</td><td>Echo</td><td>Echo pulse (duration = distance)</td></tr>
+      <tr><td>5V</td><td>VCC</td><td>Power</td></tr>
+      <tr><td>GND</td><td>GND</td><td>Ground</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Raspberry Pi 5 — Camera &amp; GPS</h3>
+  <div class="table-wrap">
+  <table class="pin-table">
+    <thead><tr><th>Pi Port</th><th>Device</th><th>Interface</th></tr></thead>
+    <tbody>
+      <tr><td>CSI-2</td><td>Pi Camera v2</td><td>Camera Serial Interface</td></tr>
+      <tr><td>USB 2.0</td><td>GPS Module</td><td>USB-UART (NMEA @ 9600 baud)</td></tr>
+      <tr><td>USB 3.0</td><td>USB Webcam</td><td>USB Video Class</td></tr>
+      <tr><td>USB 3.0</td><td>(Future: LiDAR)</td><td>USB</td></tr>
+    </tbody>
+  </table>
+  </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<div class="footer">
+  <div style="width:40px;height:3px;background:var(--accent);border-radius:2px;margin:0 auto 14px"></div>
+  <p><strong>Intelligent Autonomous Robot Car System</strong> &mdash; Final Project Description</p>
+  <p style="margin-top:4px">Pi 5 + Dual ESP32 + Laptop Brain &bull; WiFi SSID: SANJEEVI &bull; UDP :9000/:9001/:9002/:5000</p>
+  <p style="margin-top:10px;font-size:.72rem;color:var(--text3)">Generated from <code>combined_final_new_gps/combined_proj_folder/</code></p>
+</div>
+
+</div><!-- .inner -->
+</main>
+
+<script>
+// ── Mobile menu ──
+const sidebar=document.getElementById('sidebar'),toggle=document.getElementById('menuToggle'),overlay=document.getElementById('sidebarOverlay');
+toggle.addEventListener('click',()=>{sidebar.classList.toggle('open');overlay.classList.toggle('show')});
+overlay.addEventListener('click',()=>{sidebar.classList.remove('open');overlay.classList.remove('show')});
+
+// ── Scroll progress ──
+const progress=document.getElementById('progress');
+window.addEventListener('scroll',()=>{
+  const h=document.documentElement.scrollHeight-window.innerHeight;
+  progress.style.width=Math.min(100,(window.scrollY/h)*100)+'%';
+});
+
+// ── Intersection Observer ──
+const observer=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')});
+},{threshold:.06});
+document.querySelectorAll('section').forEach(s=>observer.observe(s));
+
+// ── Sidebar active link ──
+const links=document.querySelectorAll('.sidebar-nav a');
+window.addEventListener('scroll',()=>{
+  let current='';
+  document.querySelectorAll('section[id],div[id]').forEach(s=>{
+    if(s.getBoundingClientRect().top<200)current=s.id;
+  });
+  links.forEach(a=>{
+    a.classList.toggle('active',a.getAttribute('href')==='#'+current);
+  });
+});
+
+// ── Copy buttons ──
+document.querySelectorAll('.code-block').forEach(block=>{
+  const btn=document.createElement('button');
+  btn.className='copy-btn';btn.textContent='📋 Copy';
+  block.appendChild(btn);
+  btn.addEventListener('click',()=>{
+    const code=block.querySelector('pre').textContent;
+    navigator.clipboard.writeText(code).then(()=>{
+      btn.textContent='✅ Copied!';btn.classList.add('copied');
+      setTimeout(()=>{btn.textContent='📋 Copy';btn.classList.remove('copied')},2000);
+    });
+  });
+});
+</script>
+</body>
+</html>

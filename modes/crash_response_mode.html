@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💥 Crash Response Mode - 3D Visualization</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/mode-3d.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body class="mode-page">
+    <div class="cyber-grid"></div>
+    <div class="particles" id="particles"></div>
+
+    <nav class="mode-nav">
+        <div class="nav-content">
+            <a href="index.html" class="back-btn">
+                <span class="back-arrow">←</span>
+                <span>Back to Hub</span>
+            </a>
+            <div class="mode-title">
+                <span class="mode-icon">💥</span>
+                <h1>Crash Response Mode</h1>
+            </div>
+            <div class="mode-status">
+                <span class="status-indicator live"></span>
+                <span>MONITORING</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="mode-container">
+        <div class="viewport-3d" id="viewport3d">
+            <div class="viewport-overlay">
+                <div class="overlay-corner top-left"></div>
+                <div class="overlay-corner top-right"></div>
+                <div class="overlay-corner bottom-left"></div>
+                <div class="overlay-corner bottom-right"></div>
+            </div>
+            <div class="impact-overlay" id="impactOverlay" style="display: none;">
+                <div class="impact-text">IMPACT DETECTED!</div>
+                <div class="impact-severity" id="impactSeverity">Severity: HIGH</div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="panel-section">
+                <h3>🚨 Impact Detection</h3>
+                <div class="mission-display">
+                    <div class="mission-item">
+                        <span class="mission-label">System Status</span>
+                        <span class="mission-value status-ok" id="systemStatus">Monitoring</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Last Impact</span>
+                        <span class="mission-value" id="lastImpact">None</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">GPS Location</span>
+                        <span class="mission-value" id="gpsLocation">12.9716° N, 77.5946° E</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Alerts Sent</span>
+                        <span class="mission-value" id="alertsSent">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>📊 Sensor Data</h3>
+                <div class="telemetry-grid">
+                    <div class="telemetry-item">
+                        <span class="tele-label">G-Force X</span>
+                        <span class="tele-value" id="gforceX">0.02</span>
+                        <span class="tele-unit">g</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">G-Force Y</span>
+                        <span class="tele-value" id="gforceY">0.01</span>
+                        <span class="tele-unit">g</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">G-Force Z</span>
+                        <span class="tele-value" id="gforceZ">1.00</span>
+                        <span class="tele-unit">g</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Impact Threshold</span>
+                        <span class="tele-value" id="impactThreshold">2.5</span>
+                        <span class="tele-unit">g</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>📸 Captured Images</h3>
+                <div class="image-grid" id="imageGrid">
+                    <div class="image-slot">
+                        <span class="slot-icon">📹</span>
+                        <span class="slot-text">Front View</span>
+                    </div>
+                    <div class="image-slot">
+                        <span class="slot-icon">📹</span>
+                        <span class="slot-text">Left View</span>
+                    </div>
+                    <div class="image-slot">
+                        <span class="slot-icon">📹</span>
+                        <span class="slot-text">Right View</span>
+                    </div>
+                    <div class="image-slot">
+                        <span class="slot-icon">📹</span>
+                        <span class="slot-text">Rear View</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>🎮 Controls</h3>
+                <div class="button-grid">
+                    <button class="action-btn btn-warning" id="btnSimulateImpact">
+                        <span class="btn-icon">💥</span>
+                        Simulate Impact
+                    </button>
+                    <button class="action-btn btn-primary" id="btnSendAlert">
+                        <span class="btn-icon">📡</span>
+                        Send Alert
+                    </button>
+                    <button class="action-btn btn-danger" id="btnEmergencyStop">
+                        <span class="btn-icon">🛑</span>
+                        Emergency Stop
+                    </button>
+                    <button class="action-btn btn-success" id="btnResetSystem">
+                        <span class="btn-icon">🔄</span>
+                        Reset System
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>🎥 Live Camera Feed</h3>
+                <div class="camera-feed" id="cameraFeed">
+                    <div class="feed-placeholder">
+                        <span class="feed-icon">📹</span>
+                        <span class="feed-text">Waiting for video stream...</span>
+                        <span class="feed-subtext">Port: 5000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="modal" id="deliveryModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-icon">✅</span>
+                <h2>Incident Report Generated</h2>
+            </div>
+            <div class="modal-body">
+                <div class="delivery-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">Impact Severity</span>
+                        <span class="summary-value" style="color: #ff4444;">High</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">GPS Location</span>
+                        <span class="summary-value">12.97° N</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Images Captured</span>
+                        <span class="summary-value">4</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Alerts Sent</span>
+                        <span class="summary-value">3</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn btn-primary" onclick="closeModal()">Resume Monitoring</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .impact-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: impactFlash 0.5s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes impactFlash {
+            0% { background: rgba(255, 0, 0, 0.8); }
+            100% { background: rgba(255, 0, 0, 0.1); }
+        }
+
+        .impact-text {
+            font-family: var(--font-heading);
+            font-size: 3rem;
+            color: #ff0000;
+            text-shadow: 0 0 30px rgba(255, 0, 0, 0.8);
+            animation: impactPulse 0.5s infinite;
+        }
+
+        @keyframes impactPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .impact-severity {
+            font-size: 1.5rem;
+            color: #ffffff;
+            margin-top: 20px;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .image-slot {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 210, 255, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .slot-icon {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .slot-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+    </style>
+
+    <script src="js/particles.js"></script>
+    <script src="js/crash-mode-3d.js"></script>
+    <script src="js/mode-controls.js"></script>
+</body>
+</html>

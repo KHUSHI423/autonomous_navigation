@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🤖 EdgeDrive3D Robot Control</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .status-bar {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .status-item {
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .status-label {
+            font-size: 11px;
+            opacity: 0.8;
+            text-transform: uppercase;
+        }
+
+        .status-value {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+
+        .control-panel {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .joystick-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .joystick-row {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .control-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            border: none;
+            background: linear-gradient(145deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .control-btn:active, .control-btn.active {
+            transform: scale(0.95);
+            background: linear-gradient(145deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+
+        .control-btn.stop {
+            background: linear-gradient(145deg, #ff4444, #cc0000);
+            width: 100px;
+            height: 100px;
+            font-size: 40px;
+        }
+
+        .control-btn.small {
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-btn.active {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.6);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .telemetry-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .telemetry-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .telemetry-value {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .telemetry-unit {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .action-btn {
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(145deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .action-btn:active {
+            transform: scale(0.98);
+        }
+
+        .action-btn.danger {
+            background: linear-gradient(145deg, #ff4444, #cc0000);
+        }
+
+        .action-btn.success {
+            background: linear-gradient(145deg, #00c853, #009624);
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(145deg, #2196f3, #1976d2);
+        }
+
+        .log-container {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            opacity: 0.9;
+        }
+
+        .log-entry.info { color: #4fc3f7; }
+        .log-entry.success { color: #81c784; }
+        .log-entry.warning { color: #ffb74d; }
+        .log-entry.error { color: #e57373; }
+
+        .progress-bar {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            height: 8px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00c853, #69f0ae);
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .recording {
+            animation: pulse 1s infinite;
+            color: #ff4444;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 400px) {
+            .control-btn {
+                width: 70px;
+                height: 70px;
+                font-size: 28px;
+            }
+            
+            .control-btn.stop {
+                width: 90px;
+                height: 90px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 EdgeDrive3D</h1>
+            <p>Advanced Robot Control Interface</p>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-label">Mode</div>
+                <div class="status-value" id="modeDisplay">MANUAL</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Connection</div>
+                <div class="status-value" id="connectionStatus">🟢</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Battery</div>
+                <div class="status-value" id="batteryLevel">12.4V</div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <h2 style="margin-bottom: 20px; text-align: center;">🎮 Joystick Control</h2>
+            
+            <div class="joystick-container">
+                <div class="joystick-row">
+                    <button class="control-btn" id="btnForward" ontouchstart="startMove('forward')" ontouchend="stopMove()" onmousedown="startMove('forward')" onmouseup="stopMove()" onmouseleave="stopMove()">⬆️</button>
+                </div>
+                <div class="joystick-row">
+                    <button class="control-btn" id="btnLeft" ontouchstart="startMove('left')" ontouchend="stopMove()" onmousedown="startMove('left')" onmouseup="stopMove()" onmouseleave="stopMove()">⬅️</button>
+                    <button class="control-btn stop" id="btnStop" ontouchstart="stopMove()" onmousedown="stopMove()">⏹️</button>
+                    <button class="control-btn" id="btnRight" ontouchstart="startMove('right')" ontouchend="stopMove()" onmousedown="startMove('right')" onmouseup="stopMove()" onmouseleave="stopMove()">➡️</button>
+                </div>
+                <div class="joystick-row">
+                    <button class="control-btn" id="btnBackward" ontouchstart="startMove('backward')" ontouchend="stopMove()" onmousedown="startMove('backward')" onmouseup="stopMove()" onmouseleave="stopMove()">⬇️</button>
+                </div>
+            </div>
+
+            <div class="mode-selector">
+                <button class="mode-btn active" id="modeManual" onclick="setMode('MANUAL')">👤 Manual</button>
+                <button class="mode-btn" id="modeAuto" onclick="setMode('AUTO')">🤖 Auto</button>
+            </div>
+
+            <div class="telemetry-grid">
+                <div class="telemetry-card">
+                    <div class="telemetry-label">Throttle</div>
+                    <div class="telemetry-value" id="throttleValue">0</div>
+                    <div class="telemetry-unit">/ 200</div>
+                </div>
+                <div class="telemetry-card">
+                    <div class="telemetry-label">Steering</div>
+                    <div class="telemetry-value" id="steeringValue">0.00</div>
+                    <div class="telemetry-unit">rad</div>
+                </div>
+                <div class="telemetry-card">
+                    <div class="telemetry-label">Speed</div>
+                    <div class="telemetry-value" id="speedValue">0.0</div>
+                    <div class="telemetry-unit">m/s</div>
+                </div>
+                <div class="telemetry-card">
+                    <div class="telemetry-label">Heading</div>
+                    <div class="telemetry-value" id="headingValue">0°</div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="action-btn primary" onclick="toggleVideo()">
+                    <span>📹</span>
+                    <span>Video</span>
+                </button>
+                <button class="action-btn primary" onclick="showGPS()">
+                    <span>🗺️</span>
+                    <span>GPS</span>
+                </button>
+                <button class="action-btn success" onclick="startMission()">
+                    <span>🎯</span>
+                    <span>Mission</span>
+                </button>
+                <button class="action-btn danger" onclick="emergencyStop()">
+                    <span>🚨</span>
+                    <span>SOS</span>
+                </button>
+            </div>
+
+            <div class="log-container" id="logContainer">
+                <div class="log-entry info">System initialized...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // State
+        let currentMode = 'MANUAL';
+        let isMoving = false;
+        let moveInterval = null;
+        let telemetryUpdateInterval = null;
+
+        // Command endpoint (would be configured in production)
+        const COMMAND_URL = localStorage.getItem('robotCommandUrl') || '';
+
+        // Logging
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Keep only last 50 entries
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+
+        // Movement control
+        function startMove(direction) {
+            if (currentMode !== 'MANUAL') {
+                log('Switch to manual mode first!', 'warning');
+                return;
+            }
+
+            isMoving = true;
+            document.getElementById(`btn${direction.charAt(0).toUpperCase() + direction.slice(1)}`).classList.add('active');
+            
+            const commands = {
+                'forward': { throttle: 180, steering: 0.0 },
+                'backward': { throttle: -180, steering: 0.0 },
+                'left': { throttle: 150, steering: -0.5 },
+                'right': { throttle: 150, steering: 0.5 }
+            };
+
+            sendCommand(commands[direction]);
+            log(`Moving ${direction}`, 'success');
+
+            // Continuous send while button held
+            moveInterval = setInterval(() => {
+                if (isMoving) {
+                    sendCommand(commands[direction]);
+                }
+            }, 100);
+        }
+
+        function stopMove() {
+            isMoving = false;
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            if (moveInterval) {
+                clearInterval(moveInterval);
+                moveInterval = null;
+            }
+
+            sendCommand({ throttle: 0, steering: 0.0 });
+            log('Stopped', 'info');
+        }
+
+        // Send command to robot
+        function sendCommand({ throttle, steering }) {
+            updateTelemetryDisplay(throttle, steering);
+
+            if (COMMAND_URL) {
+                fetch(COMMAND_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ throttle, steering })
+                }).catch(err => {
+                    log(`Command failed: ${err.message}`, 'error');
+                });
+            }
+
+            // Also send via Telegram Bot if available
+            if (tg && tg.sendData) {
+                tg.sendData(JSON.stringify({
+                    type: 'command',
+                    throttle,
+                    steering
+                }));
+            }
+        }
+
+        // Mode switching
+        function setMode(mode) {
+            currentMode = mode;
+            
+            document.getElementById('modeManual').classList.toggle('active', mode === 'MANUAL');
+            document.getElementById('modeAuto').classList.toggle('active', mode === 'AUTO');
+            document.getElementById('modeDisplay').textContent = mode;
+
+            if (mode === 'AUTO') {
+                stopMove();
+                log('Autonomous mode activated', 'success');
+            } else {
+                log('Manual mode activated', 'info');
+            }
+
+            // Notify Telegram Bot
+            if (tg && tg.sendData) {
+                tg.sendData(JSON.stringify({ type: 'mode', mode }));
+            }
+        }
+
+        // Update telemetry display
+        function updateTelemetryDisplay(throttle, steering) {
+            document.getElementById('throttleValue').textContent = throttle;
+            document.getElementById('steeringValue').textContent = steering.toFixed(2);
+        }
+
+        // Emergency stop
+        function emergencyStop() {
+            stopMove();
+            sendCommand({ throttle: 0, steering: 0.0 });
+            log('🚨 EMERGENCY STOP!', 'error');
+            
+            // Haptic feedback
+            if (tg && tg.HapticFeedback) {
+                tg.HapticFeedback.notificationOccurred('error');
+            }
+
+            // Notify
+            if (tg && tg.sendData) {
+                tg.sendData(JSON.stringify({ type: 'emergency', action: 'stop' }));
+            }
+        }
+
+        // Toggle video
+        function toggleVideo() {
+            log('Video stream requested', 'info');
+            if (tg && tg.sendData) {
+                tg.sendData(JSON.stringify({ type: 'action', action: 'video' }));
+            }
+        }
+
+        // Show GPS
+        function showGPS() {
+            log('GPS location requested', 'info');
+            if (tg && tg.sendData) {
+                tg.sendData(JSON.stringify({ type: 'action', action: 'gps' }));
+            }
+        }
+
+        // Start mission
+        function startMission() {
+            log('Mission started', 'success');
+            if (tg && tg.HapticFeedback) {
+                tg.HapticFeedback.notificationOccurred('success');
+            }
+            if (tg && tg.sendData) {
+                tg.sendData(JSON.stringify({ type: 'action', action: 'mission_start' }));
+            }
+        }
+
+        // Simulate telemetry updates (in production, this would come from the robot)
+        function simulateTelemetry() {
+            // This would be replaced with actual telemetry from the robot
+            setInterval(() => {
+                const speed = (Math.random() * 3).toFixed(1);
+                const heading = Math.floor(Math.random() * 360);
+                
+                document.getElementById('speedValue').textContent = speed;
+                document.getElementById('headingValue').textContent = heading + '°';
+            }, 1000);
+        }
+
+        // Handle messages from Telegram
+        tg.onEvent('message_received', (msg) => {
+            try {
+                const data = JSON.parse(msg);
+                
+                if (data.type === 'telemetry') {
+                    updateTelemetryDisplay(data.throttle, data.steering);
+                    document.getElementById('speedValue').textContent = data.speed || '0.0';
+                    document.getElementById('headingValue').textContent = (data.heading || 0) + '°';
+                }
+                
+                if (data.type === 'status') {
+                    document.getElementById('batteryLevel').textContent = data.battery + 'V';
+                    document.getElementById('connectionStatus').textContent = data.connected ? '🟢' : '🔴';
+                }
+            } catch (e) {
+                console.error('Message parse error:', e);
+            }
+        });
+
+        // Keyboard support for desktop testing
+        document.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            
+            switch(e.key.toLowerCase()) {
+                case 'w':
+                case 'arrowup':
+                    startMove('forward');
+                    break;
+                case 's':
+                case 'arrowdown':
+                    startMove('backward');
+                    break;
+                case 'a':
+                case 'arrowleft':
+                    startMove('left');
+                    break;
+                case 'd':
+                case 'arrowright':
+                    startMove('right');
+                    break;
+                case ' ':
+                    stopMove();
+                    break;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(e.key.toLowerCase())) {
+                stopMove();
+            }
+        });
+
+        // Initialize
+        log('Control interface ready!', 'success');
+        simulateTelemetry();
+
+        // Set theme colors from Telegram
+        if (tg.themeParams) {
+            document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color || '#667eea');
+            document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color || '#ffffff');
+        }
+    </script>
+</body>
+</html>

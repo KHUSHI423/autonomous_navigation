@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pin Diagram — Robot Car Hardware Connections</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=SF+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f5f7;
+  --card:#ffffff;
+  --card-hover:#fafafa;
+  --border:#e5e5ea;
+  --border2:#d1d1d6;
+  --text:#1c1c1e;
+  --text2:#636366;
+  --text3:#aeaeb2;
+  --accent:#007aff;
+  --accent2:#5856d6;
+  --green:#34c759;
+  --orange:#ff9500;
+  --red:#ff3b30;
+  --purple:#af52de;
+  --teal:#5ac8fa;
+  --yellow:#ffcc00;
+  --pin-gpio:#007aff;
+  --pin-pwr:#34c759;
+  --pin-gnd:#636366;
+  --pin-comm:#ff9500;
+  --pin-pwm:#af52de;
+  --radius:16px;
+  --radius-sm:10px;
+  --shadow:0 2px 20px rgba(0,0,0,.04),0 1px 3px rgba(0,0,0,.06);
+  --shadow-lg:0 8px 40px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.04);
+  font-size:16px;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  padding:0;
+}
+::selection{background:var(--accent);color:#fff}
+
+/* ── Header ── */
+.header{
+  background:var(--card);border-bottom:1px solid var(--border);
+  padding:48px 24px 32px;text-align:center;
+}
+.header h1{
+  font-size:clamp(1.6rem,3vw,2.2rem);font-weight:700;letter-spacing:-.025em;
+  color:var(--text);margin-bottom:8px;
+}
+.header p{font-size:.95rem;color:var(--text2);max-width:600px;margin:0 auto 20px}
+.header-tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.header-tags span{
+  display:inline-flex;align-items:center;gap:5px;padding:4px 12px;
+  background:var(--bg);border-radius:100px;font-size:.75rem;font-weight:500;color:var(--text2);
+}
+.header-tags .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.dot-blue{background:var(--accent)}
+.dot-green{background:var(--green)}
+.dot-orange{background:var(--orange)}
+.dot-purple{background:var(--purple)}
+
+/* ── Layout ── */
+.container{max-width:1000px;margin:0 auto;padding:32px 24px 60px}
+
+/* ── Section ── */
+.section{margin-bottom:40px}
+.section-title{
+  display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:12px;
+  border-bottom:1px solid var(--border);
+}
+.section-title .icon{font-size:1.3rem}
+.section-title h2{font-size:1.1rem;font-weight:600;color:var(--text)}
+.section-title .count{
+  font-size:.75rem;color:var(--text3);background:var(--bg);padding:1px 8px;border-radius:100px;font-weight:500;
+}
+
+/* ── Device Card ── */
+.device-card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:28px;margin-bottom:20px;box-shadow:var(--shadow);
+}
+.device-card:hover{box-shadow:var(--shadow-lg)}
+.device-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.device-icon{
+  width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;flex-shrink:0;
+}
+.device-meta{flex:1}
+.device-meta h3{font-size:1rem;font-weight:600;color:var(--text);margin-bottom:2px}
+.device-meta .sub{font-size:.78rem;color:var(--text3);font-weight:400}
+.device-meta .role{
+  display:inline-block;margin-top:4px;padding:2px 8px;border-radius:4px;
+  font-size:.7rem;font-weight:500;text-transform:uppercase;letter-spacing:.3px;
+}
+.role-primary{background:#e8f0fe;color:var(--accent)}
+.role-secondary{background:#f0edf9;color:var(--accent2)}
+.role-camera{background:#e8f8ed;color:var(--green)}
+.role-sensor{background:#fef3e2;color:var(--orange)}
+
+/* ── Pin Table ── */
+.pin-grid{display:grid;gap:1px;background:var(--border);border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border)}
+.pin-row{display:grid;grid-template-columns:90px 1fr 1fr;background:var(--card);transition:background .15s}
+.pin-row:hover{background:var(--card-hover)}
+.pin-row.header{
+  background:var(--bg);font-size:.7rem;font-weight:600;text-transform:uppercase;
+  letter-spacing:.4px;color:var(--text3);
+}
+.pin-num{
+  padding:8px 14px;font-family:'JetBrains Mono','SF Mono',monospace;font-size:.78rem;
+  display:flex;align-items:center;gap:6px;
+}
+.pin-func{padding:8px 14px;font-size:.82rem;color:var(--text2);display:flex;align-items:center}
+.pin-desc{padding:8px 14px;font-size:.8rem;color:var(--text2);display:flex;align-items:center}
+.pin-badge{
+  display:inline-block;padding:1px 7px;border-radius:3px;font-size:.68rem;font-weight:500;
+  font-family:'Inter',sans-serif;letter-spacing:.2px;
+}
+.pin-gpio{background:#e8f0fe;color:var(--accent)}
+.pin-pwr{background:#e8f8ed;color:var(--green)}
+.pin-gnd{background:#f2f2f7;color:var(--text3)}
+.pin-comm{background:#fef3e2;color:var(--orange)}
+.pin-pwm{background:#f0edf9;color:var(--purple)}
+.pin-enable{background:#fff3cd;color:#997404}
+
+/* ── Network Card ── */
+.network-summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-top:16px}
+.net-port{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);
+  border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.82rem;
+}
+.net-port .port{
+  font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--accent);
+  font-size:.78rem;min-width:48px;
+}
+.net-port .proto{
+  font-size:.7rem;color:var(--text3);background:var(--card);padding:1px 6px;border-radius:3px;
+}
+.net-port .dir{font-size:.72rem;color:var(--text2);margin-left:auto;white-space:nowrap}
+
+/* ── Wiring Diagram ── */
+.wiring-section{margin-top:24px}
+.wiring-section h4{
+  font-size:.85rem;font-weight:600;margin-bottom:10px;color:var(--text);
+  display:flex;align-items:center;gap:6px;
+}
+.wiring-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:.82rem;padding:6px 0}
+.wiring-row .from{font-family:'JetBrains Mono',monospace;color:var(--accent);font-weight:500;min-width:70px}
+.wiring-row .arrow{color:var(--text3);font-size:.7rem}
+.wiring-row .to{color:var(--text2);min-width:60px}
+.wiring-row .via{color:var(--text3);font-size:.75rem}
+.wiring-svg{display:block;margin:16px auto;max-width:100%;border-radius:var(--radius-sm);background:var(--bg)}
+
+/* ── Power Card ── */
+.power-specs{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.power-item{
+  padding:12px 14px;background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--radius-sm);text-align:center;
+}
+.power-item .val{font-size:1.1rem;font-weight:600;color:var(--text);margin-bottom:2px}
+.power-item .lbl{font-size:.72rem;color:var(--text3)}
+
+/* ── Connection Map ── */
+.connection-map{position:relative;padding:16px;background:var(--bg);border-radius:var(--radius-sm);margin-top:14px}
+.conn-row{
+  display:flex;align-items:center;gap:10px;padding:6px 0;font-size:.8rem;
+  border-bottom:1px dotted var(--border);
+}
+.conn-row:last-child{border-bottom:none}
+.conn-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.conn-from{font-weight:500;color:var(--text);min-width:100px}
+.conn-arrow{color:var(--text3);font-size:.65rem}
+.conn-to{color:var(--text2)}
+.conn-note{color:var(--text3);font-size:.72rem;margin-left:auto}
+
+/* ── Topology ── */
+.topology{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius)}
+.topo-node{
+  padding:8px 18px;border-radius:var(--radius-sm);font-size:.8rem;font-weight:500;
+  border:1.5px solid;text-align:center;min-width:130px;
+}
+.topo-node.router{border-color:var(--accent);color:var(--accent);background:#e8f0fe}
+.topo-node.pi{border-color:var(--green);color:var(--green);background:#e8f8ed}
+.topo-node.esp{border-color:var(--orange);color:var(--orange);background:#fef3e2}
+.topo-node.laptop{border-color:var(--purple);color:var(--purple);background:#f0edf9}
+.topo-arrow{color:var(--text3);font-size:.65rem;font-family:'JetBrains Mono',monospace}
+
+/* ── Legend ── */
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;padding:14px 18px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--text2)}
+.legend-swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+/* ── Footer ── */
+.footer{text-align:center;padding:32px 24px 24px;border-top:1px solid var(--border);color:var(--text3);font-size:.78rem}
+.footer strong{color:var(--text2)}
+
+/* ── Utility ── */
+.mt-16{margin-top:16px}
+.mb-8{margin-bottom:8px}
+.tag{
+  display:inline-block;padding:1px 7px;border-radius:4px;font-size:.7rem;font-weight:500;
+}
+.tag-blue{background:#e8f0fe;color:var(--accent)}
+.tag-green{background:#e8f8ed;color:var(--green)}
+.tag-orange{background:#fef3e2;color:var(--orange)}
+.tag-purple{background:#f0edf9;color:var(--purple)}
+.tag-red{background:#fef0ef;color:var(--red)}
+code{font-family:'JetBrains Mono','SF Mono',monospace;font-size:.82em;background:#f2f2f7;padding:1px 5px;border-radius:3px;color:var(--accent)}
+
+/* ── Responsive ── */
+@media(max-width:640px){
+  .pin-row{grid-template-columns:70px 1fr 1fr}
+  .pin-num{padding:6px 10px;font-size:.72rem}
+  .pin-func{padding:6px 10px;font-size:.76rem}
+  .pin-desc{padding:6px 10px;font-size:.74rem}
+  .device-card{padding:20px}
+  .container{padding:20px 16px 40px}
+  .header{padding:32px 16px 24px}
+}
+
+/* ── Print ── */
+@media print{
+  body{background:#fff;padding:0}
+  .device-card{box-shadow:none;border-color:#ccc;break-inside:avoid;page-break-inside:avoid}
+  .header{padding:24px 16px 16px;border-bottom-color:#ccc}
+  .footer{border-top-color:#ccc}
+  .pin-grid{border-color:#ccc}
+  .pin-row:hover{background:var(--card)}
+  .legend{break-inside:avoid}
+  .container{padding:16px}
+  .connection-map{break-inside:avoid}
+}
+
+/* ── Animations ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.device-card{animation:fadeUp .5s ease both}
+.device-card:nth-child(1){animation-delay:.05s}
+.device-card:nth-child(2){animation-delay:.1s}
+.device-card:nth-child(3){animation-delay:.15s}
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<div class="header">
+  <h1>Robot Car Hardware Pinout</h1>
+  <p>Complete pin connection diagram for the dual-ESP32 + Raspberry Pi 5 autonomous robot car system. All devices on WiFi SSID <code>SANJEEVI</code>.</p>
+  <div class="header-tags">
+    <span><span class="dot dot-blue"></span>Raspberry Pi 5</span>
+    <span><span class="dot dot-orange"></span>ESP32 × 2</span>
+    <span><span class="dot dot-green"></span>TB6612FNG × 2</span>
+    <span><span class="dot dot-purple"></span>HC-SR04</span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ═══ LEGEND ═══ -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--pin-gpio)"></div>GPIO</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--pin-pwr)"></div>Power</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--pin-gnd)"></div>Ground</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--pin-comm)"></div>Communication</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--pin-pwm)"></div>PWM</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#fff3cd"></div>Enable/Control</div>
+</div>
+
+<!-- ═══ 1. ESP32 #1 — MOTOR CONTROLLER ═══ -->
+<div class="device-card">
+  <div class="device-header">
+    <div class="device-icon" style="background:#fef3e2">⚡</div>
+    <div class="device-meta">
+      <h3>ESP32 #1 — Motor Controller <span class="sub">(Main)</span></h3>
+      <div class="role role-primary">Firmware: esp32_motor_controller.ino</div>
+    </div>
+  </div>
+
+  <p style="font-size:.88rem;color:var(--text2);margin-bottom:16px;line-height:1.6">
+    Controls <strong>4× DC motors</strong> via <strong>2× TB6612FNG dual H-bridge drivers</strong>.
+    Receives <code>throttle:steering</code> commands via UDP <code>:9000</code> from the laptop.
+    Broadcasts status on UDP <code>:9001</code>. Receives ultrasonic data on UDP <code>:9002</code>.
+    Hosts a web UI on HTTP <code>:8080</code>. Connects in <strong>WiFi Station mode</strong> (SSID: SANJEEVI).
+    Brownout detection disabled. 500ms command timeout. WiFi auto-reconnect every 5s.
+  </p>
+
+  <div class="wiring-section">
+    <h4>🔌 TB6612FNG #1 — Left Motor Pair (Forward + Reverse)</h4>
+    <div class="pin-grid">
+      <div class="pin-row header">
+        <div class="pin-num">ESP32 Pin</div>
+        <div class="pin-func">TB6612FNG #1</div>
+        <div class="pin-desc">Function</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-gpio">GPIO</span> 26</div>
+        <div class="pin-func">AIN1</div>
+        <div class="pin-desc">Left Forward Motor — Direction A</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-gpio">GPIO</span> 27</div>
+        <div class="pin-func">AIN2</div>
+        <div class="pin-desc">Left Forward Motor — Direction B</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-pwm">PWM</span> 25</div>
+        <div class="pin-func">PWMA</div>
+        <div class="pin-desc">Left Forward Motor — Speed (PWM, 1kHz, 8-bit)</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-gpio">GPIO</span> 14</div>
+        <div class="pin-func">BIN1</div>
+        <div class="pin-desc">Left Reverse Motor — Direction A</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-gpio">GPIO</span> 13</div>
+        <div class="pin-func">BIN2</div>
+        <div class="pin-desc">Left Reverse Motor — Direction B</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-pwm">PWM</span> 33</div>
+        <div class="pin-func">PWMB</div>
+        <div class="pin-desc">Left Reverse Motor — Speed (PWM, 1kHz, 8-bit)</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-enable">CTRL</span> 32</div>
+        <div class="pin-func">STBY</div>
+        <div class="pin-desc">Driver 1 Standby — HIGH = enabled</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wiring-section mt-16">
+    <h4>🔌 TB6612FNG #2 — Right Motor Pair (Forward + Reverse)</h4>
+    <div class="pin-grid">
+      <div class="pin-row header">
+        <div class="pin-num">ESP32 Pin</div>
+        <div class="pin-func">TB6612FNG #2</div>
+        <div class="pin-desc">Function</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-gpio">GPIO</span> 4</div>
+        <div class="pin-func">AIN1</div>
+        <div class="pin-desc">Right Forward Motor — Direction A</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-gpio">GPIO</span> 5</div>
+        <div class="pin-func">AIN2</div>
+        <div class="pin-desc">Right Forward Motor — Direction B</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-pwm">PWM</span> 18</div>
+        <div class="pin-func">PWMA</div>
+        <div class="pin-desc">Right Forward Motor — Speed (PWM, 1kHz, 8-bit)</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-gpio">GPIO</span> 19</div>
+        <div class="pin-func">BIN1</div>
+        <div class="pin-desc">Right Reverse Motor — Direction A</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-gpio">GPIO</span> 21</div>
+        <div class="pin-func">BIN2</div>
+        <div class="pin-desc">Right Reverse Motor — Direction B</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-pwm">PWM</span> 22</div>
+        <div class="pin-func">PWMB</div>
+        <div class="pin-desc">Right Reverse Motor — Speed (PWM, 1kHz, 8-bit)</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-enable">CTRL</span> 23</div>
+        <div class="pin-func">STBY</div>
+        <div class="pin-desc">Driver 2 Standby — HIGH = enabled</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wiring-section mt-16">
+    <h4>📡 Network Services</h4>
+    <div class="pin-grid">
+      <div class="pin-row header">
+        <div class="pin-num">Interface</div>
+        <div class="pin-func">Port</div>
+        <div class="pin-desc">Direction</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-comm">UDP</span></div>
+        <div class="pin-func"><code>:9000</code></div>
+        <div class="pin-desc">Receive throttle:steering commands from laptop</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-comm">UDP</span></div>
+        <div class="pin-func"><code>:9001</code></div>
+        <div class="pin-desc">Broadcast STATUS to laptop (STATUS:AUTO:150:0.02:25.5)</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-comm">UDP</span></div>
+        <div class="pin-func"><code>:9002</code></div>
+        <div class="pin-desc">Receive ULTRA:XX.XX distance from ESP32 #2</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-comm">HTTP</span></div>
+        <div class="pin-func"><code>:8080</code></div>
+        <div class="pin-desc">Web UI for manual motor testing &amp; status</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wiring-section mt-16">
+    <h4>⚡ Motor Control Logic — Differential Drive</h4>
+    <p style="font-size:.82rem;color:var(--text2);margin-bottom:8px">
+      Steering via differential wheel speed (skid-steer). No servo steering.
+    </p>
+    <div class="pin-grid">
+      <div class="pin-row header">
+        <div class="pin-num">Command</div>
+        <div class="pin-func">Motors</div>
+        <div class="pin-desc">Behavior</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num">Forward</div>
+        <div class="pin-func">Left ↑ · Right ↑</div>
+        <div class="pin-desc">Both pairs forward at equal speed</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num">Reverse</div>
+        <div class="pin-func">Left ↓ · Right ↓</div>
+        <div class="pin-desc">Both pairs backward at equal speed</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num">Turn Left</div>
+        <div class="pin-func">Left ↓ · Right ↑</div>
+        <div class="pin-desc">Left reverse, right forward (pivot)</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num">Turn Right</div>
+        <div class="pin-func">Left ↑ · Right ↓</div>
+        <div class="pin-desc">Left forward, right reverse (pivot)</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num">Steer Left</div>
+        <div class="pin-func">Left slow · Right fast</div>
+        <div class="pin-desc">Differential: reduce left motor speed</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num">Steer Right</div>
+        <div class="pin-func">Left fast · Right slow</div>
+        <div class="pin-desc">Differential: reduce right motor speed</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 2. ESP32 #2 — ULTRASONIC SENSOR ═══ -->
+<div class="device-card">
+  <div class="device-header">
+    <div class="device-icon" style="background:#fef3e2">📡</div>
+    <div class="device-meta">
+      <h3>ESP32 #2 — Ultrasonic Sensor <span class="sub">(Sensor)</span></h3>
+      <div class="role role-sensor">Firmware: esp32_ultrasonic_udp_v1.ino</div>
+    </div>
+  </div>
+
+  <p style="font-size:.88rem;color:var(--text2);margin-bottom:16px;line-height:1.6">
+    Reads <strong>HC-SR04 ultrasonic sensor</strong> every 200ms (5 Hz) and sends distance data
+    via UDP <code>:9002</code> to ESP32 #1. Also used by the laptop for <strong>sensor fusion</strong>
+    (ultrasonic takes priority under 30cm). Connects to same WiFi SSID <code>SANJEEVI</code>.
+  </p>
+
+  <div class="wiring-section">
+    <h4>🔌 HC-SR04 Ultrasonic Module</h4>
+    <div class="pin-grid">
+      <div class="pin-row header">
+        <div class="pin-num">ESP32 #2</div>
+        <div class="pin-func">HC-SR04</div>
+        <div class="pin-desc">Function</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-gpio">GPIO</span> 21</div>
+        <div class="pin-func">TRIG</div>
+        <div class="pin-desc">Trigger pin — sends 10µs pulse to start measurement</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-gpio">GPIO</span> 18</div>
+        <div class="pin-func">ECHO</div>
+        <div class="pin-desc">Echo pin — pulse width = distance (timeout 30ms)</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-pwr">5V</span></div>
+        <div class="pin-func">VCC</div>
+        <div class="pin-desc">Power — 5V from ESP32 board pin</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-gnd">GND</span></div>
+        <div class="pin-func">GND</div>
+        <div class="pin-desc">Ground — common with ESP32</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wiring-section mt-16">
+    <h4>📡 Distance Calculation</h4>
+    <div class="connection-map">
+      <div class="conn-row">
+        <span class="conn-dot" style="background:var(--accent)"></span>
+        <span class="conn-from">Formula</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-to"><code>distance = (pulse_duration × 0.034) / 2</code></span>
+        <span class="conn-note">Speed of sound: 340 m/s</span>
+      </div>
+      <div class="conn-row">
+        <span class="conn-dot" style="background:var(--green)"></span>
+        <span class="conn-from">Range</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-to">2 cm – 400 cm</span>
+        <span class="conn-note">Timeout at 30ms ≈ 5m</span>
+      </div>
+      <div class="conn-row">
+        <span class="conn-dot" style="background:var(--orange)"></span>
+        <span class="conn-from">Update Rate</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-to">10 Hz (every 100ms)</span>
+        <span class="conn-note">Configurable</span>
+      </div>
+      <div class="conn-row">
+        <span class="conn-dot" style="background:var(--purple)"></span>
+        <span class="conn-from">Protocol</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-to"><code>ULTRA:25.50</code> (2 decimal places)</span>
+        <span class="conn-note">UDP :9002</span>
+      </div>
+      <div class="conn-row">
+        <span class="conn-dot" style="background:var(--red)"></span>
+        <span class="conn-from">Out-of-Range</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-to"><code>ULTRA:999.00</code></span>
+        <span class="conn-note">No echo or < 2cm / > 400cm</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="wiring-section mt-16">
+    <h4>📡 Network</h4>
+    <div class="pin-grid">
+      <div class="pin-row header">
+        <div class="pin-num">Interface</div>
+        <div class="pin-func">Port</div>
+        <div class="pin-desc">Direction</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-comm">UDP</span></div>
+        <div class="pin-func"><code>:9002</code></div>
+        <div class="pin-desc">Send ULTRA:distance to ESP32 #1 (IP configurable)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 3. RASPBERRY PI 5 — CAMERA STREAMER ═══ -->
+<div class="device-card">
+  <div class="device-header">
+    <div class="device-icon" style="background:#e8f8ed">📹</div>
+    <div class="device-meta">
+      <h3>Raspberry Pi 5 — Camera Streamer</h3>
+      <div class="role role-camera">Script: pi_camera_v2.py</div>
+    </div>
+  </div>
+
+  <p style="font-size:.88rem;color:var(--text2);margin-bottom:16px;line-height:1.6">
+    Dedicated camera streaming unit. Captures <strong>640×480 video at ~30 FPS</strong> from
+    Pi Camera v2 (CSI) or USB Webcam. Compresses frames as JPEG (quality 75%) and sends over
+    UDP <code>:5000</code> to the laptop. Frame format: <code>[4-byte size][JPEG data]</code>.
+  </p>
+
+  <div class="wiring-section">
+    <h4>🔌 Port Connections</h4>
+    <div class="pin-grid">
+      <div class="pin-row header">
+        <div class="pin-num">Pi 5 Port</div>
+        <div class="pin-func">Device</div>
+        <div class="pin-desc">Interface</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-comm">CSI-2</span></div>
+        <div class="pin-func">Pi Camera v2</div>
+        <div class="pin-desc">15-pin ribbon cable (8MP, 640×480 capture)</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-comm">USB 2.0</span></div>
+        <div class="pin-func">GPS Module</div>
+        <div class="pin-desc">USB-UART, NMEA @ 9600 baud ($GPGGA, $GPRMC)</div>
+      </div>
+      <div class="pin-row">
+        <div class="pin-num"><span class="pin-badge pin-comm">USB 3.0</span></div>
+        <div class="pin-func">USB Webcam</div>
+        <div class="pin-desc">Optional alternative to CSI camera</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wiring-section mt-16">
+    <h4>📡 Video Stream Protocol</h4>
+    <div class="connection-map">
+      <div class="conn-row">
+        <span class="conn-dot" style="background:var(--accent)"></span>
+        <span class="conn-from">Source</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-to">Pi Camera v2 or USB Webcam (640×480)</span>
+      </div>
+      <div class="conn-row">
+        <span class="conn-dot" style="background:var(--green)"></span>
+        <span class="conn-from">Compression</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-to">JPEG quality 75%</span>
+      </div>
+      <div class="conn-row">
+        <span class="conn-dot" style="background:var(--orange)"></span>
+        <span class="conn-from">Frame Format</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-to"><code>[4-byte size (uint32)] + [JPEG data]</code></span>
+      </div>
+      <div class="conn-row">
+        <span class="conn-dot" style="background:var(--purple)"></span>
+        <span class="conn-from">Destination</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-to">Laptop UDP :5000</span>
+      </div>
+      <div class="conn-row">
+        <span class="conn-dot" style="background:var(--red)"></span>
+        <span class="conn-from">FPS</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-to">~30 FPS (target), varies with network</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 4. POWER SYSTEM ═══ -->
+<div class="device-card">
+  <div class="device-header">
+    <div class="device-icon" style="background:#fff3cd">🔋</div>
+    <div class="device-meta">
+      <h3>Power System</h3>
+      <div class="role" style="background:#fff3cd;color:#997404">Battery &amp; Distribution</div>
+    </div>
+  </div>
+
+  <div class="power-specs">
+    <div class="power-item">
+      <div class="val">7.4V</div>
+      <div class="lbl">LiPo Battery (2S)</div>
+    </div>
+    <div class="power-item">
+      <div class="val">2×</div>
+      <div class="lbl">TB6612FNG Drivers</div>
+    </div>
+    <div class="power-item">
+      <div class="val">4×</div>
+      <div class="lbl">DC Motors</div>
+    </div>
+    <div class="power-item">
+      <div class="val">5V</div>
+      <div class="lbl">ESP32 Logic</div>
+    </div>
+    <div class="power-item">
+      <div class="val">5V</div>
+      <div class="lbl">HC-SR04</div>
+    </div>
+    <div class="power-item">
+      <div class="val">5V</div>
+      <div class="lbl">Pi 5 / USB</div>
+    </div>
+  </div>
+
+  <div class="wiring-section mt-16">
+    <h4>⚡ Power Distribution</h4>
+    <div class="connection-map">
+      <div class="conn-row">
+        <span class="conn-dot" style="background:var(--green)"></span>
+        <span class="conn-from">7.4V LiPo</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-to">TB6612FNG Driver Power Inputs</span>
+        <span class="conn-note">VM = 2.5V–13.5V range</span>
+      </div>
+      <div class="conn-row">
+        <span class="conn-dot" style="background:var(--accent)"></span>
+        <span class="conn-from">TB6612FNG VCC</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-to">ESP32 #1 VIN (5V)</span>
+        <span class="conn-note">VCC = 2.7V–5.5V logic</span>
+      </div>
+      <div class="conn-row">
+        <span class="conn-dot" style="background:var(--orange)"></span>
+        <span class="conn-from">ESP32 #2</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-to">HC-SR04 VCC (5V)</span>
+        <span class="conn-note">5V pin on board</span>
+      </div>
+      <div class="conn-row">
+        <span class="conn-dot" style="background:var(--purple)"></span>
+        <span class="conn-from">Pi 5</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-to">USB-C Power (5.1V/5A)</span>
+        <span class="conn-note">Official Pi 5 PSU</span>
+      </div>
+      <div class="conn-row">
+        <span class="conn-dot" style="background:var(--red)"></span>
+        <span class="conn-from">Grounds</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-to">All GND connected common</span>
+        <span class="conn-note">Shared ground reference</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 5. NETWORK TOPOLOGY ═══ -->
+<div class="device-card">
+  <div class="device-header">
+    <div class="device-icon" style="background:#f0edf9">🌐</div>
+    <div class="device-meta">
+      <h3>Network Topology</h3>
+      <div class="role" style="background:#f0edf9;color:var(--accent2)">All devices on same SSID</div>
+    </div>
+  </div>
+
+  <div class="topology">
+    <div class="topo-node router">📶 SSID: SANJEEVI</div>
+    <div class="topo-arrow">├──────────────────────────────────────┐</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+      <div class="topo-node esp">⚡ ESP32 #1 Motor<br><small>:9000/:9001/:9002</small></div>
+      <div class="topo-node esp">📡 ESP32 #2 Usonic<br><small>:9002 send</small></div>
+      <div class="topo-node pi">🖥️ Pi 5 Camera<br><small>:5000 send</small></div>
+      <div class="topo-node laptop">💻 Laptop Brain<br><small>:5000/:9000/:9001/:9002</small></div>
+    </div>
+  </div>
+
+  <div class="network-summary">
+    <div class="net-port"><span class="port">:5000</span> <span class="proto">UDP</span> Pi 5 → Laptop <span class="dir">Video stream</span></div>
+    <div class="net-port"><span class="port">:9000</span> <span class="proto">UDP</span> Laptop → ESP32 #1 <span class="dir">Motor commands</span></div>
+    <div class="net-port"><span class="port">:9001</span> <span class="proto">UDP</span> ESP32 #1 → Laptop <span class="dir">Status broadcast</span></div>
+    <div class="net-port"><span class="port">:9002</span> <span class="proto">UDP</span> ESP32 #2 → ESP32 #1 <span class="dir">Ultrasonic data</span></div>
+    <div class="net-port"><span class="port">:8080</span> <span class="proto">HTTP</span> Browser → ESP32 #1 <span class="dir">Web UI</span></div>
+    <div class="net-port"><span class="port">:5000</span> <span class="proto">HTTP</span> Laptop → Browser <span class="dir">Flask dashboard</span></div>
+    <div class="net-port"><span class="port">:443</span> <span class="proto">HTTPS</span> Bot → API <span class="dir">Telegram outbound</span></div>
+  </div>
+</div>
+
+<!-- ═══ 6. COMPLETE CONNECTION MAP ═══ -->
+<div class="device-card">
+  <div class="device-header">
+    <div class="device-icon" style="background:#fef0ef">🧩</div>
+    <div class="device-meta">
+      <h3>Full System Connection Map</h3>
+      <div class="role role-primary">All hardware connections</div>
+    </div>
+  </div>
+
+  <div class="pin-grid">
+    <div class="pin-row header">
+      <div class="pin-num">From</div>
+      <div class="pin-func">To</div>
+      <div class="pin-desc">Connection</div>
+    </div>
+    <div class="pin-row">
+      <div class="pin-num"><span class="pin-badge pin-gpio" style="background:#e8f0fe">ESP32 #1</span></div>
+      <div class="pin-func">TB6612FNG #1 (Left)</div>
+      <div class="pin-desc">GPIO 26,27,25,14,13,33,32 → AIN1,AIN2,PWMA,BIN1,BIN2,PWMB,STBY</div>
+    </div>
+    <div class="pin-row">
+      <div class="pin-num"><span class="pin-badge pin-gpio" style="background:#e8f0fe">ESP32 #1</span></div>
+      <div class="pin-func">TB6612FNG #2 (Right)</div>
+      <div class="pin-desc">GPIO 4,5,18,19,21,22,23 → AIN1,AIN2,PWMA,BIN1,BIN2,PWMB,STBY</div>
+    </div>
+    <div class="pin-row">
+      <div class="pin-num"><span class="pin-badge pin-gpio" style="background:#fef3e2">ESP32 #2</span></div>
+      <div class="pin-func">HC-SR04</div>
+      <div class="pin-desc">GPIO 21 → TRIG, GPIO 18 → ECHO, 5V → VCC, GND → GND</div>
+    </div>
+    <div class="pin-row">
+      <div class="pin-num"><span class="pin-badge pin-comm" style="background:#e8f8ed">Pi 5</span></div>
+      <div class="pin-func">Pi Camera v2</div>
+      <div class="pin-desc">CSI-2 connector (15-pin ribbon)</div>
+    </div>
+    <div class="pin-row">
+      <div class="pin-num"><span class="pin-badge pin-comm" style="background:#e8f8ed">Pi 5</span></div>
+      <div class="pin-func">GPS Module</div>
+      <div class="pin-desc">USB → UART, NMEA @ 9600 baud</div>
+    </div>
+    <div class="pin-row">
+      <div class="pin-num"><span class="pin-badge pin-pwr" style="background:#fff3cd">Battery</span></div>
+      <div class="pin-func">TB6612FNG × 2</div>
+      <div class="pin-desc">7.4V LiPo → VM & GND terminals on both drivers</div>
+    </div>
+    <div class="pin-row">
+      <div class="pin-num"><span class="pin-badge pin-pwr" style="background:#fff3cd">TB6612FNG</span></div>
+      <div class="pin-func">ESP32 #1</div>
+      <div class="pin-desc">VCC (5V logic rail) → ESP32 VIN</div>
+    </div>
+    <div class="pin-row">
+      <div class="pin-num"><span class="pin-badge pin-pwr" style="background:#fff3cd">ESP32 #2</span></div>
+      <div class="pin-func">HC-SR04</div>
+      <div class="pin-desc">5V board pin → HC-SR04 VCC</div>
+    </div>
+    <div class="pin-row">
+      <div class="pin-num"><span class="pin-badge pin-gnd">All</span></div>
+      <div class="pin-func">Common GND</div>
+      <div class="pin-desc">All GND pins connected together (ESP32, TB6612FNG, HC-SR04)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 7. SAFETY & FIRMWARE NOTES ═══ -->
+<div class="device-card">
+  <div class="device-header">
+    <div class="device-icon" style="background:#e8f8ed">🛡️</div>
+    <div class="device-meta">
+      <h3>Critical Firmware Notes</h3>
+      <div class="role" style="background:#e8f8ed;color:var(--green)">Hardware safety</div>
+    </div>
+  </div>
+
+  <div class="connection-map">
+    <div class="conn-row">
+      <span class="conn-dot" style="background:var(--red)"></span>
+      <span class="conn-from">Brownout Disabled</span>
+      <span class="conn-arrow">→</span>
+      <span class="conn-to"><code>WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0)</code></span>
+      <span class="conn-note">ESP32 #1 only</span>
+    </div>
+    <div class="conn-row" style="border-bottom-color:transparent">
+      <span style="font-size:.78rem;color:var(--text3);grid-column:1/-1;padding:4px 0">
+        Prevents WiFi dropout when motors spin up and cause voltage dips.
+        Only needed on the motor controller ESP32.
+      </span>
+    </div>
+
+    <div class="conn-row">
+      <span class="conn-dot" style="background:var(--orange)"></span>
+      <span class="conn-from">Command Timeout</span>
+      <span class="conn-arrow">→</span>
+      <span class="conn-to">500ms — motors STOP if no command received</span>
+      <span class="conn-note">Safety fallback</span>
+    </div>
+    <div class="conn-row" style="border-bottom-color:transparent">
+      <span style="font-size:.78rem;color:var(--text3);grid-column:1/-1;padding:4px 0">
+        If the laptop disconnects or crashes, the ESP32 stops the motors within 500ms.
+      </span>
+    </div>
+
+    <div class="conn-row">
+      <span class="conn-dot" style="background:var(--accent)"></span>
+      <span class="conn-from">WiFi Auto-Reconnect</span>
+      <span class="conn-arrow">→</span>
+      <span class="conn-to">Checks every 5s, auto-reconnects if lost</span>
+      <span class="conn-note">Both ESP32s</span>
+    </div>
+
+    <div class="conn-row">
+      <span class="conn-dot" style="background:var(--purple)"></span>
+      <span class="conn-from">Sensor Fusion</span>
+      <span class="conn-arrow">→</span>
+      <span class="conn-to">Ultrasonic &lt; 30cm → YOLO bbox distance &gt; 30cm</span>
+      <span class="conn-note">On laptop</span>
+    </div>
+    <div class="conn-row" style="border-bottom-color:transparent">
+      <span style="font-size:.78rem;color:var(--text3);grid-column:1/-1;padding:4px 0">
+        Ultrasonic takes priority under 30cm. YOLOv8 bounding box height estimation
+        used for objects beyond 30cm.
+      </span>
+    </div>
+
+    <div class="conn-row">
+      <span class="conn-dot" style="background:var(--green)"></span>
+      <span class="conn-from">UDP Command Format</span>
+      <span class="conn-arrow">→</span>
+      <span class="conn-to"><code>throttle:steering</code> (e.g. <code>150:0.00</code>)</span>
+      <span class="conn-note">Laptop → ESP32 #1</span>
+    </div>
+  </div>
+</div>
+
+</div><!-- /.container -->
+
+<!-- ═══ FOOTER ═══ -->
+<div class="footer">
+  <p><strong>Robot Car V2 — Hardware Pinout Diagram</strong></p>
+  <p style="margin-top:4px">ESP32 #1 Motor Controller &middot; ESP32 #2 Ultrasonic Sensor &middot; Raspberry Pi 5 Camera Streamer</p>
+  <p style="margin-top:6px">WiFi: <code>SANJEEVI</code> &middot; UDP: <code>:5000</code> <code>:9000</code> <code>:9001</code> <code>:9002</code></p>
+</div>
+
+</body>
+</html>

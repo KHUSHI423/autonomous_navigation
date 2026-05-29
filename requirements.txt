@@ -1,0 +1,66 @@
+# Core Dependencies
+numpy>=1.24.0
+opencv-python>=4.8.0
+opencv-contrib-python>=4.8.0
+
+# Deep Learning
+torch>=2.0.0
+torchvision>=0.15.0
+ultralytics>=8.0.100
+
+# 3D Visualization
+open3d>=0.17.0
+plotly>=5.15.0
+
+# Dashboard
+streamlit>=1.28.0
+streamlit-camera-input-live>=0.2.0
+flask>=2.3.0
+flask-socketio>=5.3.0
+python-socketio>=5.0.0
+eventlet>=0.33.0  # For SocketIO async mode
+
+# Image Processing
+Pillow>=10.0.0
+scipy>=1.11.0
+scikit-image>=0.21.0
+
+# Utilities
+pandas>=2.0.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+PyYAML>=6.0
+
+# Optional: Transformers for Depth Anything
+transformers>=4.30.0
+
+# Optional: SAHI for improved small object detection
+sahi>=0.11.0
+
+# Networking
+socketio>=4.6.0
+
+# Progress bars
+tqdm>=4.65.0
+
+# Testing
+pytest>=7.4.0
+
+# GPS & Mapping (Free OpenStreetMap Integration)
+folium>=0.14.0
+branca>=0.6.0
+geojson>=3.0.0
+pyserial>=4.0
+pynmea2>=1.19.0
+
+# Optional: GPSD daemon support
+# gpsd-py3>=0.3.0  # Uncomment if using GPSD
+
+# Optional: Advanced mapping
+xyzservices>=2023.5.0
+
+# Telegram remote control bot (see telegram_bot/)
+python-telegram-bot>=20.7
+
+# Plotting (used by 3D mapping & dashboards)
+matplotlib>=3.8.0

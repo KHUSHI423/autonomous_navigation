@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚶 Escort Mode - 3D Visualization</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/mode-3d.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body class="mode-page">
+    <div class="cyber-grid"></div>
+    <div class="particles" id="particles"></div>
+
+    <nav class="mode-nav">
+        <div class="nav-content">
+            <a href="index.html" class="back-btn">← Back to Hub</a>
+            <div class="mode-title">
+                <span class="mode-icon">🚶</span>
+                <h1>Escort Mode</h1>
+            </div>
+            <div class="mode-status">
+                <span class="status-indicator live"></span>
+                <span>ESCORTING</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="mode-container">
+        <div class="viewport-3d" id="viewport3d"></div>
+
+        <div class="control-panel">
+            <div class="panel-section">
+                <h3>👤 Person Tracking</h3>
+                <div class="mission-display">
+                    <div class="mission-item">
+                        <span class="mission-label">Target Status</span>
+                        <span class="mission-value status-ok" id="targetStatus">Locked</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Following Distance</span>
+                        <span class="mission-value" id="followDistance">2.5 m</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Safe Zone</span>
+                        <span class="mission-value">Active</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>📊 Telemetry</h3>
+                <div class="telemetry-grid">
+                    <div class="telemetry-item">
+                        <span class="tele-label">Speed</span>
+                        <span class="tele-value" id="speedValue">1.4</span>
+                        <span class="tele-unit">m/s</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Battery</span>
+                        <span class="tele-value" id="batteryValue">86</span>
+                        <span class="tele-unit">%</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Ultrasonic</span>
+                        <span class="tele-value" id="ultrasonicValue">42.1</span>
+                        <span class="tele-unit">cm</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>🎮 Controls</h3>
+                <div class="button-grid">
+                    <button class="action-btn btn-primary" id="btnStartEscort">▶️ Start Escort</button>
+                    <button class="action-btn btn-warning" id="btnPause">⏸️ Pause</button>
+                    <button class="action-btn btn-danger" id="btnEmergencyStop">🛑 Stop</button>
+                    <button class="action-btn btn-success" id="btnReturnHome">🏠 Return</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>🎥 Camera Feed</h3>
+                <div class="camera-feed" id="cameraFeed">
+                    <div class="feed-placeholder">
+                        <span class="feed-icon">📹</span>
+                        <span class="feed-text">Person Tracking View</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/particles.js"></script>
+    <script src="js/escort-mode-3d.js"></script>
+    <script src="js/mode-controls.js"></script>
+</body>
+</html>

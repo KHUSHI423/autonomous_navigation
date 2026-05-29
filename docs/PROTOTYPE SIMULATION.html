@@ -1,0 +1,2494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROJECT NOVA | Autonomous Infrastructure Intelligence System</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <!-- Three.js & Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-purple: #bc13fe;
+            --neon-pink: #ff2a6d;
+            --neon-green: #39ff14;
+            --bg-void: #050510;
+            --bg-dark: #0a0a1a;
+            --glass-bg: rgba(10, 10, 25, 0.8);
+            --glass-border: rgba(0, 243, 255, 0.3);
+            --text-main: #ffffff;
+            --text-secondary: #cccccc;
+        }
+
+        body.light-mode {
+            --bg-void: #e0e5ec;
+            --bg-dark: #ffffff;
+            --glass-bg: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(0, 150, 200, 0.3);
+            --text-main: #1a1a2e;
+            --text-secondary: #4a4a5e;
+        }
+
+        body.light-mode #canvas-container {
+            background: radial-gradient(ellipse at center, #f0f4f8 0%, #d9e2ec 100%);
+        }
+
+        body.light-mode #canvas-container::after {
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.03),
+                rgba(0, 0, 0, 0.03) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+        }
+
+        body.light-mode .status-value,
+        body.light-mode .data-value {
+             color: #000;
+             font-weight: 800;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-void);
+            font-family: 'Rajdhani', sans-serif;
+            color: var(--text-main);
+            overflow: hidden;
+            cursor: default;
+        }
+
+        /* CANVAS */
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: radial-gradient(ellipse at center, #1a1a3e 0%, #000000 100%);
+        }
+
+        /* SCANLINE EFFECT */
+        #canvas-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.1),
+                rgba(0, 0, 0, 0.1) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        /* UI LAYER */
+        .ui-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* HEADER */
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 2rem 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+            pointer-events: auto;
+        }
+
+        .brand h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            font-weight: 900;
+            margin: 0;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 20px rgba(0, 243, 255, 0.5));
+            letter-spacing: 3px;
+        }
+
+        .brand .subtitle {
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--neon-cyan);
+            font-size: 0.9rem;
+            margin-top: 8px;
+            letter-spacing: 2px;
+            opacity: 0.9;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: auto auto;
+            gap: 15px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        .status-item {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            padding: 8px 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+        }
+
+        .status-label {
+            color: var(--neon-cyan);
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .status-value {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        /* INFO PANEL (Right Sidebar) */
+        #info-panel {
+            position: fixed;
+            right: -450px;
+            top: 15%;
+            width: 420px;
+            max-height: 70vh;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-right: none;
+            border-radius: 15px 0 0 15px;
+            padding: 2rem;
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.7);
+            transition: right 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            pointer-events: auto;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        #info-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #info-panel::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+        }
+
+        #info-panel::-webkit-scrollbar-thumb {
+            background: var(--neon-cyan);
+            border-radius: 10px;
+        }
+
+        #info-panel.active {
+            right: 0;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--glass-border);
+        }
+
+        .panel-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 0 20px rgba(188, 19, 254, 0.5);
+            margin-right: 15px;
+        }
+
+        .panel-title-wrapper {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 15px rgba(0, 243, 255, 0.6);
+            margin: 0;
+            flex: 1;
+        }
+
+        .close-btn {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: 2px solid var(--neon-pink);
+            background: transparent;
+            color: var(--neon-pink);
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            background: var(--neon-pink);
+            color: black;
+            transform: rotate(90deg);
+            box-shadow: 0 0 20px var(--neon-pink);
+        }
+
+        .panel-description {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .data-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .data-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-left: 3px solid var(--neon-cyan);
+            padding: 15px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .data-section:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-left-color: var(--neon-purple);
+            transform: translateX(5px);
+        }
+
+        .data-label {
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--neon-cyan);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: block;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .data-label::before {
+            content: '▸';
+            margin-right: 8px;
+            color: var(--neon-purple);
+        }
+
+        .data-value {
+            color: #fff;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .highlight {
+            color: var(--neon-green);
+            font-weight: 600;
+        }
+
+        /* CONTROLS (Bottom) */
+        .controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+            pointer-events: auto;
+        }
+
+        .btn {
+            position: relative;
+            background: transparent;
+            color: white;
+            border: 2px solid var(--neon-cyan);
+            padding: 15px 35px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--neon-cyan);
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        .btn:hover::before {
+            left: 0;
+        }
+
+        .btn:hover {
+            color: black;
+            box-shadow: 0 0 30px var(--neon-cyan), inset 0 0 20px rgba(0, 243, 255, 0.3);
+            transform: translateY(-3px);
+        }
+
+        .btn.purple {
+            border-color: var(--neon-purple);
+        }
+
+        .btn.purple::before {
+            background: var(--neon-purple);
+        }
+
+        .btn.purple:hover {
+            box-shadow: 0 0 30px var(--neon-purple), inset 0 0 20px rgba(188, 19, 254, 0.3);
+        }
+
+        .btn.pink {
+            border-color: var(--neon-pink);
+        }
+
+        .btn.pink::before {
+            background: var(--neon-pink);
+        }
+
+        .btn.pink:hover {
+            box-shadow: 0 0 30px var(--neon-pink), inset 0 0 20px rgba(255, 42, 109, 0.3);
+        }
+
+        .btn.active {
+            background: var(--neon-cyan);
+            color: black;
+            box-shadow: 0 0 30px var(--neon-cyan);
+        }
+
+        /* INSTRUCTIONS */
+        .instructions {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+            text-align: center;
+            pointer-events: none;
+            letter-spacing: 1px;
+        }
+
+        .instructions span {
+            display: inline-block;
+            margin: 0 15px;
+        }
+
+        /* MODE INDICATOR */
+        #mode-indicator {
+            position: absolute;
+            top: 50%;
+            left: 30px;
+            transform: translateY(-50%);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            pointer-events: auto;
+        }
+
+        .mode-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            border: 2px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--neon-cyan);
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .mode-btn:hover {
+            background: rgba(0, 243, 255, 0.2);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+            transform: scale(1.1);
+        }
+
+        .mode-btn.active {
+            background: var(--neon-cyan);
+            color: black;
+            box-shadow: 0 0 25px var(--neon-cyan);
+        }
+
+        .mode-tooltip {
+            position: absolute;
+            left: 80px;
+            background: var(--bg-dark);
+            border: 1px solid var(--neon-cyan);
+            padding: 8px 15px;
+            border-radius: 8px;
+            white-space: nowrap;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.75rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .mode-btn:hover .mode-tooltip {
+            opacity: 1;
+        }
+
+        /* LOADING SCREEN */
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-void);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1s ease;
+        }
+
+        .spinner {
+            width: 80px;
+            height: 80px;
+            border: 4px solid rgba(0, 243, 255, 0.1);
+            border-top: 4px solid var(--neon-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            position: relative;
+        }
+
+        .spinner::after {
+            content: '';
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(188, 19, 254, 0.1);
+            border-bottom: 4px solid var(--neon-purple);
+            border-radius: 50%;
+            top: 6px;
+            left: 6px;
+            animation: spin 0.7s linear infinite reverse;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loader-text {
+            color: var(--neon-cyan);
+            font-family: 'Share Tech Mono', monospace;
+            margin-top: 30px;
+            font-size: 1rem;
+            letter-spacing: 3px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loader-progress {
+            width: 300px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            margin-top: 20px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loader-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+            width: 0%;
+            animation: load 2s ease-out forwards;
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        @keyframes load {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+
+        /* DATA FLOW VISUALIZATION */
+        #dataflow-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 50;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        #dataflow-overlay.active {
+            display: flex;
+        }
+
+        /* HUD LAYER (Live Map Dashboard) */
+        #hud-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+            display: none; /* Hidden by default */
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        #hud-layer.active {
+            display: block;
+        }
+
+        .hud-overlay-frame {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            border: 2px solid rgba(0, 243, 255, 0.3);
+            border-radius: 20px;
+            clip-path: polygon(
+                0 0, 200px 0, 250px 50px, calc(100% - 250px) 50px, calc(100% - 200px) 0, 100% 0, 
+                100% 100%, calc(100% - 200px) 100%, calc(100% - 250px) calc(100% - 50px), 250px calc(100% - 50px), 200px 100%, 0 100%
+            );
+            background: linear-gradient(180deg, rgba(0, 243, 255, 0.05) 0%, transparent 50%, rgba(0, 243, 255, 0.05) 100%);
+        }
+
+        .hud-speedometer {
+            position: absolute;
+            bottom: 80px;
+            left: 50px;
+            text-align: right;
+        }
+
+        .hud-speed-value {
+            font-size: 6rem;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            line-height: 0.8;
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        .hud-speed-unit {
+            font-size: 1.5rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .hud-tracker {
+            position: absolute;
+            top: 80px;
+            right: 50px;
+            text-align: left;
+            width: 200px;
+        }
+
+        .hud-tracker-item {
+            background: rgba(0, 20, 40, 0.6);
+            border-left: 3px solid var(--neon-pink);
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 0.8rem;
+        }
+
+        .hud-compass {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            height: 30px;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 19px,
+                var(--neon-cyan) 20px
+            );
+            mask-image: linear-gradient(90deg, transparent, white 20%, white 80%, transparent);
+        }
+
+        .hud-center-reticle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+        }
+        
+        .hud-center-reticle::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            background: var(--neon-pink);
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+        }
+
+        .dataflow-container {
+            width: 90%;
+            max-width: 1200px;
+            height: 80%;
+            background: var(--glass-bg);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 20px;
+            padding: 3rem;
+            position: relative;
+            overflow: auto;
+        }
+
+        .dataflow-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--neon-pink);
+            background: transparent;
+            color: var(--neon-pink);
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dataflow-close:hover {
+            background: var(--neon-pink);
+            color: black;
+            transform: rotate(90deg);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+                flex-direction: column;
+            }
+
+            .brand h1 {
+                font-size: 2rem;
+            }
+
+            #info-panel {
+                width: 90%;
+                right: -100%;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            #mode-indicator {
+                top: auto;
+                bottom: 200px;
+                left: 50%;
+                transform: translateX(-50%);
+                flex-direction: row;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOADING SCREEN -->
+    <div id="loader">
+        <div class="spinner"></div>
+        <div class="loader-text">INITIALIZING DIGITAL TWIN...</div>
+        <div class="loader-progress">
+            <div class="loader-bar"></div>
+        </div>
+    </div>
+
+    <!-- 3D CANVAS -->
+    <div id="canvas-container"></div>
+
+    <!-- DATA FLOW OVERLAY -->
+    <div id="dataflow-overlay">
+        <div class="dataflow-container">
+            <button class="dataflow-close" onclick="toggleDataFlow()">✕</button>
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <h2 style="font-family: 'Orbitron', sans-serif; color: var(--neon-cyan); font-size: 2rem; margin-bottom: 1rem;">SENSOR FUSION PIPELINE</h2>
+                <p style="color: #ccc; font-family: 'Share Tech Mono', monospace;">Real-time Multi-Modal Data Processing Architecture</p>
+            </div>
+            <svg width="100%" height="500" style="max-width: 1000px; margin: 0 auto; display: block;">
+                <!-- Sensors Layer -->
+                <g id="sensors-layer">
+                    <!-- Camera -->
+                    <rect x="50" y="50" width="150" height="80" fill="rgba(0, 243, 255, 0.1)" stroke="#00f3ff" stroke-width="2" rx="10"/>
+                    <text x="125" y="85" text-anchor="middle" fill="#00f3ff" font-family="Rajdhani" font-size="16" font-weight="bold">📷 CAMERA</text>
+                    <text x="125" y="105" text-anchor="middle" fill="#fff" font-family="Share Tech Mono" font-size="11">RGB Frames</text>
+                    
+                    <!-- LiDAR -->
+                    <rect x="250" y="50" width="150" height="80" fill="rgba(188, 19, 254, 0.1)" stroke="#bc13fe" stroke-width="2" rx="10"/>
+                    <text x="325" y="85" text-anchor="middle" fill="#bc13fe" font-family="Rajdhani" font-size="16" font-weight="bold">📡 LiDAR</text>
+                    <text x="325" y="105" text-anchor="middle" fill="#fff" font-family="Share Tech Mono" font-size="11">Point Cloud</text>
+                    
+                    <!-- Ultrasonic -->
+                    <rect x="450" y="50" width="150" height="80" fill="rgba(57, 255, 20, 0.1)" stroke="#39ff14" stroke-width="2" rx="10"/>
+                    <text x="525" y="85" text-anchor="middle" fill="#39ff14" font-family="Rajdhani" font-size="16" font-weight="bold">📏 ULTRASONIC</text>
+                    <text x="525" y="105" text-anchor="middle" fill="#fff" font-family="Share Tech Mono" font-size="11">Distance Data</text>
+                </g>
+
+                <!-- Data Flow Lines -->
+                <g id="flow-lines">
+                    <line x1="125" y1="130" x2="325" y2="200" stroke="#00f3ff" stroke-width="2" opacity="0.6"/>
+                    <line x1="325" y1="130" x2="325" y2="200" stroke="#bc13fe" stroke-width="2" opacity="0.6"/>
+                    <line x1="525" y1="130" x2="325" y2="200" stroke="#39ff14" stroke-width="2" opacity="0.6"/>
+                </g>
+
+                <!-- Processing Layer -->
+                <g id="processing-layer">
+                    <!-- Perception -->
+                    <rect x="100" y="200" width="200" height="70" fill="rgba(0, 243, 255, 0.15)" stroke="#00f3ff" stroke-width="2" rx="10"/>
+                    <text x="200" y="230" text-anchor="middle" fill="#00f3ff" font-family="Rajdhani" font-size="14" font-weight="bold">PERCEPTION</text>
+                    <text x="200" y="250" text-anchor="middle" fill="#fff" font-family="Share Tech Mono" font-size="10">YOLOv8 + RANSAC</text>
+                    
+                    <!-- Sensor Fusion Core -->
+                    <rect x="350" y="200" width="200" height="70" fill="rgba(188, 19, 254, 0.15)" stroke="#bc13fe" stroke-width="2" rx="10"/>
+                    <text x="450" y="230" text-anchor="middle" fill="#bc13fe" font-family="Rajdhani" font-size="14" font-weight="bold">FUSION CORE</text>
+                    <text x="450" y="250" text-anchor="middle" fill="#fff" font-family="Share Tech Mono" font-size="10">αV + βL Correlation</text>
+                </g>
+
+                <!-- Jetson Brain -->
+                <rect x="200" y="310" width="250" height="90" fill="rgba(255, 42, 109, 0.15)" stroke="#ff2a6d" stroke-width="3" rx="10"/>
+                <text x="325" y="340" text-anchor="middle" fill="#ff2a6d" font-family="Orbitron" font-size="18" font-weight="bold">🧠 JETSON ORIN</text>
+                <text x="325" y="365" text-anchor="middle" fill="#fff" font-family="Share Tech Mono" font-size="11">Edge AI Processing</text>
+                <text x="325" y="383" text-anchor="middle" fill="#39ff14" font-family="Share Tech Mono" font-size="10">TensorRT | CUDA Accelerated</text>
+
+                <!-- Output Layer -->
+                <rect x="150" y="430" width="350" height="60" fill="rgba(0, 243, 255, 0.1)" stroke="#00f3ff" stroke-width="2" rx="10"/>
+                <text x="325" y="455" text-anchor="middle" fill="#00f3ff" font-family="Rajdhani" font-size="16" font-weight="bold">🗺️ 3D DIGITAL TWIN OUTPUT</text>
+                <text x="325" y="475" text-anchor="middle" fill="#fff" font-family="Share Tech Mono" font-size="11">Real-time Map + Annotations</text>
+
+                <!-- Connection lines -->
+                <line x1="200" y1="270" x2="325" y2="310" stroke="#00f3ff" stroke-width="2" opacity="0.6"/>
+                <line x1="450" y1="270" x2="325" y2="310" stroke="#bc13fe" stroke-width="2" opacity="0.6"/>
+                <line x1="325" y1="400" x2="325" y2="430" stroke="#ff2a6d" stroke-width="3" opacity="0.8"/>
+
+                <!-- Animated particles will be added via JS -->
+            </svg>
+        </div>
+    </div>
+
+    <!-- HUD LAYER -->
+    <div id="hud-layer">
+        <div class="hud-overlay-frame"></div>
+        <div class="hud-center-reticle"></div>
+        <div class="hud-compass"></div>
+        
+        <div class="hud-speedometer">
+            <div class="hud-speed-value" id="hud-speed">0</div>
+            <div class="hud-speed-unit">KM/H</div>
+        </div>
+
+        <div class="hud-tracker">
+            <div class="hud-tracker-item">
+                <span style="color: var(--neon-cyan);">OBJECTS DETECTED</span><br>
+                <span id="hud-obj-count" style="font-weight: bold; font-size: 1.2rem;">0</span>
+            </div>
+            <div class="hud-tracker-item">
+                <span style="color: var(--neon-purple);">NEAREST OBSTACLE</span><br>
+                <span id="hud-dist" style="font-weight: bold;">-- m</span>
+            </div>
+            <div class="hud-tracker-item">
+                <span style="color: var(--neon-green);">ROAD STATUS</span><br>
+                <span style="font-weight: bold;">SCANNING...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI LAYER -->
+    <div class="ui-layer">
+        
+        <!-- HEADER -->
+        <div class="header">
+            <div class="brand">
+                <h1>NOVA <span style="color: var(--neon-purple);">PROTOTYPE</span></h1>
+                <div class="subtitle">LiDAR & Vision Fusion • Autonomous Infrastructure Mapper</div>
+            </div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">SYSTEM</span>
+                    <span class="status-value">● ONLINE</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">MODE</span>
+                    <span class="status-value" id="current-mode">EXPLORE</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">AI PROC</span>
+                    <span class="status-value">JETSON ORIN</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">SENSORS</span>
+                    <span class="status-value">8 ACTIVE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODE SELECTOR (Left Side) -->
+        <div id="mode-indicator">
+            <button class="mode-btn active" data-mode="explore" onclick="switchMode('explore')">
+                🔍
+                <div class="mode-tooltip">Explore Mode</div>
+            </button>
+            <button class="mode-btn" data-mode="explode" onclick="switchMode('explode')">
+                💥
+                <div class="mode-tooltip">Exploded View</div>
+            </button>
+            <button class="mode-btn" data-mode="wireframe" onclick="switchMode('wireframe')">
+                🔲
+                <div class="mode-tooltip">Wireframe</div>
+            </button>
+            <button class="mode-btn" data-mode="xray" onclick="switchMode('xray')">
+                👁️
+                <div class="mode-tooltip">X-Ray Vision</div>
+            </button>
+        </div>
+
+        <!-- INFO PANEL (Right Sidebar) -->
+        <div id="info-panel">
+            <div class="panel-header">
+                <div class="panel-title-wrapper">
+                    <div class="panel-icon" id="comp-icon">🔧</div>
+                    <h2 class="panel-title" id="comp-title">COMPONENT</h2>
+                </div>
+                <button class="close-btn" onclick="closePanel()">✕</button>
+            </div>
+            <div class="panel-description" id="comp-desc">
+                Click on any component to explore its specifications, inputs, outputs, and real-world applications.
+            </div>
+            <div class="data-grid">
+                <div class="data-section">
+                    <span class="data-label">Role & Function</span>
+                    <div class="data-value" id="comp-role">-</div>
+                </div>
+                <div class="data-section">
+                    <span class="data-label">Input Signals</span>
+                    <div class="data-value" id="comp-input">-</div>
+                </div>
+                <div class="data-section">
+                    <span class="data-label">Output Data</span>
+                    <div class="data-value" id="comp-output">-</div>
+                </div>
+                <div class="data-section">
+                    <span class="data-label">Processing Operation</span>
+                    <div class="data-value" id="comp-operation">-</div>
+                </div>
+                <div class="data-section">
+                    <span class="data-label">Uniqueness</span>
+                    <div class="data-value" id="comp-unique">-</div>
+                </div>
+                <div class="data-section">
+                    <span class="data-label">Real-World Applications</span>
+                    <div class="data-value" id="comp-app">-</div>
+                </div>
+                <div class="data-section">
+                    <span class="data-label">Technical Specs</span>
+                    <div class="data-value" id="comp-specs">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- INSTRUCTIONS -->
+        <div class="instructions">
+            <span>🖱️ DRAG TO ROTATE</span>
+            <span>🔍 SCROLL TO ZOOM</span>
+            <span>👆 CLICK COMPONENTS</span>
+            <span>⌨️ PRESS ESC TO RESET</span>
+        </div>
+
+        <!-- CONTROLS (Bottom) -->
+        <div class="controls">
+            <button class="btn" onclick="toggleDataFlow()">
+                📊 View Data Pipeline
+            </button>
+            <button class="btn purple" onclick="showLiveDemo()">
+                🗺️ Live Map Demo
+            </button>
+            <button class="btn" onclick="toggleAutoRotate()">
+                🔄 Auto Rotate
+            </button>
+            <div style="position: relative; display: inline-block;">
+                <button class="btn purple" onclick="toggleTheme()" id="theme-btn">
+                    🌓 Theme
+                </button>
+                <input type="color" id="color-picker" value="#f0f4f8" 
+                       style="position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); 
+                              margin-bottom: 10px; opacity: 0; pointer-events: none; transition: opacity 0.3s;"
+                       onchange="updateCustomColor(this.value)">
+                <button class="btn purple" onclick="document.getElementById('color-picker').click()" 
+                        style="margin-left: 10px; padding: 15px 15px;" title="Pick Color">
+                    🎨
+                </button>
+            </div>
+            <button class="btn pink" onclick="resetCamera()">
+                🔄 Reset View
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // COMPONENT DATA REPOSITORY
+        // ============================================
+        const componentData = {
+            "lidar": {
+                icon: "📡",
+                title: "LiDAR SENSOR",
+                desc: "360° Spatial Awareness Unit utilizing Time-of-Flight laser ranging for precise 3D environmental mapping.",
+                role: "Provides geometric perception - the physical structure and depth of the environment.",
+                input: "Laser pulse emissions (905nm wavelength) • Reflection time measurements",
+                output: "Point Cloud Data (X, Y, Z coordinates) • Distance Matrix • Intensity Maps",
+                operation: "Emits rapid laser pulses, measures reflection time (t), calculates distance: d = (c × t) / 2. Generates 100,000+ points/second in 360° field.",
+                unique: "Unlike cameras, LiDAR provides <span class='highlight'>absolute depth accuracy</span> independent of lighting conditions - works in complete darkness, fog, and glare.",
+                app: "• Autonomous navigation (Tesla, Waymo)<br>• Archaeological site mapping<br>• Forest canopy analysis<br>• Infrastructure inspection<br>• This project: Road surface anomaly detection (potholes, cracks)",
+                specs: "Range: 0.15m - 12m • Resolution: 0.2° angular • Frequency: 5-15Hz • Interface: UART/I2C • Power: 5V @ 150mA"
+            },
+            "camera": {
+                icon: "📷",
+                title: "RGB VISION SENSOR",
+                desc: "High-resolution optical sensor for semantic scene understanding and traffic sign recognition.",
+                role: "Provides semantic perception - understands what objects are, reads text and symbols.",
+                input: "Visible light spectrum (400-700nm) • 1920×1080 RGB frames @ 60fps",
+                output: "Classified objects with bounding boxes • Confidence scores • Traffic sign labels (STOP, YIELD, Speed limits)",
+                operation: "Captures frames → Pre-processing (normalization) → YOLOv8 neural network inference → Post-processing (NMS) → Classification output. Optimized with TensorRT for 30ms latency.",
+                unique: "<span class='highlight'>Semantic understanding</span> that LiDAR cannot provide. Distinguishes a wall from a 'Road Closed' sign, reads speed limit numbers.",
+                app: "• Traffic sign recognition (Mercedes MBUX)<br>• Lane departure warning systems<br>• Pedestrian detection<br>• License plate recognition<br>• This project: Traffic regulation compliance mapping",
+                specs: "Sensor: IMX219 CMOS • Resolution: 1080p • FPS: 60 • FOV: 160° • Interface: CSI-2 / USB 3.0 • Low-light: 0.1 lux"
+            },
+            "brain": {
+                icon: "🧠",
+                title: "NVIDIA JETSON ORIN NANO",
+                desc: "The central AI processing unit - Edge computing platform with GPU acceleration for real-time sensor fusion and inference.",
+                role: "The 'Cortex' - coordinates all sensors, runs AI models, performs sensor fusion, generates the digital twin.",
+                input: "Camera stream (CSI/USB) • LiDAR point clouds (UART) • Ultrasonic distances (I2C) • IMU orientation data • GPS coordinates",
+                output: "3D Voxel Map • Object classifications • Motor control commands • Annotated scene data • Real-time visualizations",
+                operation: "Multi-threaded pipeline: Separate CUDA streams for vision (YOLOv8), LiDAR (PCL), and fusion. Uses shared memory for inter-process communication. Runs custom sensor fusion algorithm: Fusion_Score = α(Vision_Confidence) + β(LiDAR_Depth_Validation).",
+                unique: "<span class='highlight'>1024 CUDA cores + 32 Tensor Cores</span> enable running 3+ AI models simultaneously at edge. No cloud dependency = zero latency, data privacy, works offline.",
+                app: "• Autonomous robots (Boston Dynamics Spot)<br>• Surgical robots (da Vinci)<br>• Industrial inspection drones<br>• Smart city infrastructure<br>• This project: Real-time infrastructure mapping for municipal maintenance",
+                specs: "GPU: 1024 CUDA cores • CPU: 6-core ARM A78AE • RAM: 8GB LPDDR5 • AI: 40 TOPS • Power: 7W-15W • OS: JetPack Linux"
+            },
+            "chassis": {
+                icon: "🏗️",
+                title: "STRUCTURAL CHASSIS",
+                desc: "Custom-designed aluminum alloy mobility platform with suspension system for sensor stability.",
+                role: "Provides mechanical foundation and vibration damping for precision sensor mounting.",
+                input: "Motor torque transmission • Terrain forces • Payload weight (3.5kg total)",
+                output: "Stable sensor platform • Kinematic motion • Structural rigidity",
+                operation: "4-wheel independent suspension absorbs vibrations. Differential drive kinematics: turning radius R = (L/2) × (VL + VR)/(VR - VL). Low center of gravity (CoG at 45mm) prevents tipping.",
+                unique: "<span class='highlight'>Custom vibration-dampening mounts</span> reduce sensor noise by 75%. Bad mechanics = noisy perception; this chassis ensures high-fidelity SLAM.",
+                app: "• Mars rovers (Perseverance rocker-bogie)<br>• Warehouse robots (Amazon Kiva)<br>• Agricultural robots<br>• This project: Smooth traversal over rough Indian roads for accurate mapping",
+                specs: "Material: 6061-T6 Aluminum • Dimensions: 450×300×150mm • Weight: 1.2kg • Suspension: 20mm travel • Ground clearance: 65mm"
+            },
+            "motors": {
+                icon: "⚙️",
+                title: "DC GEAR MOTORS",
+                desc: "High-torque brushed DC motors with planetary gearboxes for precise mobility control.",
+                role: "Converts electrical energy into mechanical motion - the 'muscles' of the system.",
+                input: "PWM signals (0-255) from motor driver • Direction control (HIGH/LOW) • 12V DC power",
+                output: "Rotational torque: 10 kg-cm @ 100 RPM • Wheel velocity • Positional movement",
+                operation: "Receives PWM duty cycle from L298N driver. Planetary gearbox (1:50 ratio) trades speed for torque. Integrated encoders provide odometry feedback for closed-loop control.",
+                unique: "<span class='highlight'>Encoder feedback</span> enables accurate distance measurement (±2mm over 1m) crucial for mapping. High torque ensures operation on 15° inclines.",
+                app: "• Electric wheelchairs<br>• Robotic arms (6-axis manipulators)<br>• 3D printer motion systems<br>• This project: Reliable navigation through potholed terrain",
+                specs: "Voltage: 12V DC • Current: 1.5A stall • RPM: 100 @ no-load • Torque: 10kg-cm • Encoder: 20 PPR • Efficiency: 75%"
+            },
+            "driver": {
+                icon: "🔌",
+                title: "MOTOR DRIVER (L298N)",
+                desc: "Dual H-Bridge motor controller for bidirectional DC motor control with current protection.",
+                role: "Power interface between low-voltage logic (ESP32) and high-current motors.",
+                input: "PWM signals (3.3V logic) • Direction pins • 12V power supply",
+                output: "Regulated motor voltage (0-12V) • Bidirectional current (up to 2A per channel) • Enable/disable control",
+                operation: "H-bridge configuration switches polarity for direction control. PWM modulates average voltage: V_avg = V_supply × (duty_cycle / 255). Built-in flyback diodes protect against back-EMF.",
+                unique: "<span class='highlight'>Thermal shutdown protection</span> prevents damage during stall conditions. Separate logic power ensures MCU safety.",
+                app: "• CNC machines<br>• Camera gimbals<br>• Robotic manipulators<br>• This project: Precise speed control for smooth mapping runs",
+                specs: "Channels: 2 (4 motors max) • Current: 2A continuous, 3A peak • Voltage: 5-35V • Logic: 3.3V/5V compatible • Protection: Thermal + Over-current"
+            },
+            "mcu": {
+                icon: "💻",
+                title: "MICROCONTROLLER (ESP32)",
+                desc: "Real-time control unit handling low-level actuation and safety-critical functions.",
+                role: "The 'Spinal Cord' - handles reflexive responses while Jetson handles cognition.",
+                input: "High-level commands from Jetson (via Serial/I2C) • Ultrasonic sensor echoes • Emergency stop signals",
+                output: "PWM signals to motor drivers • Safety interrupt triggers • Sensor polling data • Status telemetry",
+                operation: "Runs FreeRTOS for multitasking: Task1 (motor control @ 100Hz), Task2 (ultrasonic @ 20Hz), Task3 (serial comms @ 50Hz). Implements watchdog timer - if no Jetson heartbeat for 500ms, executes emergency brake.",
+                unique: "<span class='highlight'>Hardware interrupts for safety</span>. If ultrasonic detects obstacle <10cm, overrides Jetson and stops motors within 50ms - faster than any AI could react.",
+                app: "• IoT devices (ESP32 is ubiquitous)<br>• Drone flight controllers<br>• Industrial PLCs<br>• This project: Safety layer ensuring no collisions during autonomous mapping",
+                specs: "CPU: Dual-core 240MHz • RAM: 520KB SRAM • Flash: 4MB • GPIO: 34 pins • Wireless: WiFi + Bluetooth • ADC: 12-bit • Real-time: FreeRTOS"
+            },
+            "ultrasonic": {
+                icon: "📏",
+                title: "ULTRASONIC SENSORS (HC-SR04)",
+                desc: "Acoustic ranging sensors providing redundant near-field obstacle detection.",
+                role: "The 'Virtual Bumper' - close-range safety net and LiDAR validation.",
+                input: "10μs trigger pulse • Acoustic echo reception",
+                output: "Distance measurement (2cm - 400cm) • Binary obstacle detection (threshold-based)",
+                operation: "Emits 40kHz ultrasonic pulse, measures echo return time (t), calculates distance: d = (t × 343m/s) / 2. Update rate: 20Hz per sensor.",
+                unique: "<span class='highlight'>Acoustic sensing</span> immune to visual interference (e.g., glass, mirrors that confuse vision). Provides redundancy - if LiDAR fails, ultrasonics still detect obstacles.",
+                app: "• Parking assist (cars worldwide)<br>• Liquid level sensing (tanks)<br>• Blind spot detection<br>• This project: Emergency braking + validates LiDAR readings for close objects",
+                specs: "Range: 2-400cm • Accuracy: ±3mm • Frequency: 40kHz • Beam angle: 15° • Interface: GPIO (trigger/echo) • Power: 5V @ 15mA"
+            },
+            "power": {
+                icon: "🔋",
+                title: "POWER MANAGEMENT SYSTEM",
+                desc: "Multi-rail power distribution with voltage regulation and battery management.",
+                role: "Energy supply orchestration across all subsystems with safety cutoffs.",
+                input: "11.1V LiPo battery (3S configuration, 5000mAh) • Charging current from external adapter",
+                output: "12V rail (motors) • 5V rail (Jetson, sensors) • 3.3V rail (MCU logic) • Battery status telemetry",
+                operation: "Buck converters step down voltage efficiently (>90% efficiency). Battery management system (BMS) monitors cell voltages, prevents over-discharge (<3.3V/cell), balances cells during charging. Low-voltage cutoff at 9.9V protects battery longevity.",
+                unique: "<span class='highlight'>Intelligent power budgeting</span>: If battery <20%, system reduces Jetson AI workload and enters 'return-to-base' mode.",
+                app: "• Electric vehicles (Tesla BMS)<br>• Laptop battery management<br>• Solar power systems<br>• This project: 90-minute runtime enabling large-area infrastructure mapping",
+                specs: "Battery: 11.1V 5000mAh LiPo • BMS: 3S 25A protection • Converters: 12V/5A, 5V/5A • Runtime: 90min continuous • Charging: 2.5hrs (2A charger)"
+            },
+            "imu": {
+                icon: "🧭",
+                title: "IMU (MPU6050)",
+                desc: "6-axis Inertial Measurement Unit providing orientation and acceleration data.",
+                role: "Maintains spatial awareness - knows the vehicle's tilt, rotation, and acceleration.",
+                input: "Physical rotation (gyroscope) • Gravitational/linear acceleration (accelerometer)",
+                output: "3-axis rotation rates (°/s) • 3-axis acceleration (m/s²) • Computed pitch, roll, yaw angles",
+                operation: "MEMS gyroscope detects angular velocity using Coriolis effect. Accelerometer measures proper acceleration via proof mass displacement. Complementary filter fuses both: θ = 0.98(θ + gyro×dt) + 0.02(accel). I2C communication at 400kHz.",
+                unique: "<span class='highlight'>Crucial for SLAM</span> (Simultaneous Localization and Mapping). Corrects LiDAR point clouds for vehicle pitch/roll - without IMU, uphill slopes would be mapped as walls.",
+                app: "• Smartphone screen rotation<br>• Drone stabilization (DJI flight controllers)<br>• VR headset tracking<br>• This project: Corrects sensor data for vehicle tilt on uneven roads",
+                specs: "Gyro range: ±250°/s to ±2000°/s • Accel range: ±2g to ±16g • Resolution: 16-bit • Interface: I2C (400kHz) • Update: 1kHz • Drift: <0.1°/s"
+            },
+            "gps": {
+                icon: "🛰️",
+                title: "GPS MODULE (NEO-6M)",
+                desc: "Global Navigation Satellite System receiver for absolute positioning.",
+                role: "Provides global coordinates to geolocate detected infrastructure defects.",
+                input: "GNSS signals from 6+ satellites (L1 frequency, 1575.42 MHz)",
+                output: "Latitude, Longitude (±2.5m accuracy) • Altitude • Speed • Timestamp (UTC)",
+                operation: "Triangulates position using time-of-flight from multiple satellites. Outputs NMEA sentences via UART (9600 baud): $GPGGA (position), $GPRMC (velocity). Update rate: 1Hz (5Hz with configuration).",
+                unique: "Enables <span class='highlight'>geo-tagged infrastructure database</span>. Every detected pothole gets exact GPS coordinates, creating a digital map municipalities can use for repair prioritization.",
+                app: "• Navigation systems (Google Maps)<br>• Fleet tracking<br>• Precision agriculture<br>• This project: Creates exportable KML/GeoJSON files of road defects for city planners",
+                specs: "Channels: 50 • Sensitivity: -161dBm • Accuracy: 2.5m CEP • Update: 1Hz (5Hz max) • Interface: UART • Cold start: 27s • Power: 45mA"
+            },
+            "display": {
+                icon: "🖥️",
+                title: "3D MAP VISUALIZATION",
+                desc: "Real-time rendering engine displaying the digital twin of mapped infrastructure.",
+                role: "Human-machine interface - translates raw sensor data into actionable visual intelligence.",
+                input: "Voxel grid from SLAM • Classified objects from AI • GPS-tagged annotations",
+                output: "Interactive 3D scene • Bird's-eye-view (BEV) projection • Heat maps of road quality • AR overlay capabilities",
+                operation: "Point cloud rendered using Octree optimization (reduces 1M points to 50K visible). Traffic signs displayed as 3D billboards at detected GPS locations. Color-coded road surface: Green (smooth), Yellow (cracks), Red (potholes). WebGL-based for cross-platform compatibility.",
+                unique: "<span class='highlight'>Augmented reality mode</span>: Overlay detection results on live camera feed using OpenCV + OpenGL, creating a 'Terminator vision' effect showing hidden infrastructure issues.",
+                app: "• Autonomous vehicle HMIs (Tesla autopilot visualization)<br>• Building Information Modeling (BIM)<br>• Video game engines (Unreal/Unity)<br>• This project: City dashboard showing real-time infrastructure health",
+                specs: "Framework: Three.js / Open3D • Rendering: WebGL 2.0 • FPS: 30 • Point capacity: 5M • Formats: PCD, PLY, LAS • Export: KML, GeoJSON, OBJ"
+            }
+        };
+
+        // ============================================
+        // THREE.JS SCENE SETUP
+        // ============================================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050510, 0.015);
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(12, 8, 12);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 30;
+        controls.minDistance = 3;
+        controls.maxPolarAngle = Math.PI / 2.1;
+
+        // ============================================
+        // LIGHTING
+        // ============================================
+        const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
+        scene.add(ambientLight);
+
+        const blueLight = new THREE.PointLight(0x00f3ff, 3, 60);
+        blueLight.position.set(10, 15, 10);
+        blueLight.castShadow = true;
+        scene.add(blueLight);
+
+        const purpleLight = new THREE.PointLight(0xbc13fe, 3, 60);
+        purpleLight.position.set(-10, 12, -10);
+        scene.add(purpleLight);
+
+        const pinkLight = new THREE.PointLight(0xff2a6d, 2, 40);
+        pinkLight.position.set(0, 20, 0);
+        scene.add(pinkLight);
+
+        // Spotlights for drama
+        const spotLight = new THREE.SpotLight(0x00f3ff, 2);
+        spotLight.position.set(15, 25, 15);
+        spotLight.angle = Math.PI / 6;
+        spotLight.penumbra = 0.3;
+        spotLight.castShadow = true;
+        scene.add(spotLight);
+
+        // ============================================
+        // ENVIRONMENT
+        // ============================================
+        const gridHelper = new THREE.GridHelper(60, 60, 0x00f3ff, 0x0a0a1a);
+        gridHelper.position.y = -0.5;
+        gridHelper.material.opacity = 0.3;
+        gridHelper.material.transparent = true;
+        scene.add(gridHelper);
+
+        // Add glowing grid lines
+        const glowGridGeometry = new THREE.CircleGeometry(30, 64);
+        const glowGridMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00f3ff,
+            transparent: true,
+            opacity: 0.05,
+            side: THREE.DoubleSide
+        });
+        const glowGrid = new THREE.Mesh(glowGridGeometry, glowGridMaterial);
+        glowGrid.rotation.x = -Math.PI / 2;
+        glowGrid.position.y = -0.4;
+        scene.add(glowGrid);
+
+        // ============================================
+        // MATERIALS
+        // ============================================
+        const materials = {
+            glass: new THREE.MeshPhysicalMaterial({
+                color: 0x0a0a1a,
+                metalness: 0.9,
+                roughness: 0.1,
+                transmission: 0.5,
+                transparent: true,
+                opacity: 0.8,
+                envMapIntensity: 1
+            }),
+            neonCyan: new THREE.MeshStandardMaterial({
+                color: 0x000000,
+                emissive: 0x00f3ff,
+                emissiveIntensity: 2,
+                metalness: 0.8,
+                roughness: 0.2
+            }),
+            neonPurple: new THREE.MeshStandardMaterial({
+                color: 0x000000,
+                emissive: 0xbc13fe,
+                emissiveIntensity: 2,
+                metalness: 0.8,
+                roughness: 0.2
+            }),
+            neonPink: new THREE.MeshStandardMaterial({
+                color: 0x000000,
+                emissive: 0xff2a6d,
+                emissiveIntensity: 2,
+                metalness: 0.8,
+                roughness: 0.2
+            }),
+            neonGreen: new THREE.MeshStandardMaterial({
+                color: 0x000000,
+                emissive: 0x39ff14,
+                emissiveIntensity: 1.5,
+                metalness: 0.8,
+                roughness: 0.2
+            }),
+            metal: new THREE.MeshStandardMaterial({
+                color: 0x2a2a2a,
+                metalness: 0.9,
+                roughness: 0.3
+            }),
+            carbon: new THREE.MeshStandardMaterial({
+                color: 0x0a0a0a,
+                metalness: 0.7,
+                roughness: 0.4,
+                normalScale: new THREE.Vector2(0.5, 0.5)
+            }),
+            wireframeCyan: new THREE.MeshBasicMaterial({
+                color: 0x00f3ff,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.3
+            })
+        };
+
+        // ============================================
+        // BUILD THE VEHICLE
+        // ============================================
+        const vehicleGroup = new THREE.Group();
+        const explodableParts = [];
+        let wireframeObjects = [];
+
+        // 1. CHASSIS (Main Body)
+        const chassisGeom = new THREE.BoxGeometry(5, 1.2, 3);
+        const chassis = new THREE.Mesh(chassisGeom, materials.glass);
+        chassis.castShadow = true;
+        chassis.receiveShadow = true;
+        chassis.userData = { id: 'chassis', name: 'CHASSIS' };
+        
+        const chassisWire = new THREE.Mesh(chassisGeom, materials.wireframeCyan);
+        chassis.add(chassisWire);
+        wireframeObjects.push(chassisWire);
+        
+        vehicleGroup.add(chassis);
+        explodableParts.push({
+            mesh: chassis,
+            home: { x: 0, y: 0, z: 0 },
+            explode: { x: 0, y: 0, z: 0 }
+        });
+
+        // 2. WHEELS (4x)
+        const wheelGroup = new THREE.Group();
+        const wheelGeom = new THREE.CylinderGeometry(0.7, 0.7, 0.5, 32);
+        const wheelPositions = [
+            { x: -2, z: 1.8 }, { x: 2, z: 1.8 },
+            { x: -2, z: -1.8 }, { x: 2, z: -1.8 }
+        ];
+
+        wheelPositions.forEach((pos, i) => {
+            const wheel = new THREE.Mesh(wheelGeom, materials.carbon);
+            wheel.rotation.x = Math.PI / 2;
+            wheel.rotation.z = Math.PI / 2;
+            wheel.position.set(pos.x, -0.6, pos.z);
+            wheel.castShadow = true;
+            wheel.userData = { id: 'chassis', isWheel: true };
+
+            // Rim glow
+            const rimGeom = new THREE.TorusGeometry(0.5, 0.03, 16, 32);
+            const rim = new THREE.Mesh(rimGeom, materials.neonCyan);
+            rim.rotation.y = Math.PI / 2;
+            wheel.add(rim);
+
+            // Tire treads
+            for (let j = 0; j < 8; j++) {
+                const tread = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.05, 0.1, 0.6),
+                    materials.metal
+                );
+                tread.position.set(
+                    Math.cos(j * Math.PI / 4) * 0.65,
+                    Math.sin(j * Math.PI / 4) * 0.65,
+                    0
+                );
+                tread.rotation.z = j * Math.PI / 4;
+                wheel.add(tread);
+            }
+
+            vehicleGroup.add(wheel);
+            explodableParts.push({
+                mesh: wheel,
+                home: { x: pos.x, y: -0.6, z: pos.z },
+                explode: { x: pos.x * 1.8, y: -2, z: pos.z * 1.8 }
+            });
+        });
+
+        // 3. LiDAR (Top Center)
+        const lidarGroup = new THREE.Group();
+        const lidarBase = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.4, 0.4, 0.6, 32),
+            materials.metal
+        );
+        lidarBase.castShadow = true;
+        
+        const lidarTop = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.45, 0.35, 0.15, 32),
+            materials.neonPurple
+        );
+        lidarTop.position.y = 0.375;
+        
+        // Laser scan ring
+        const laserRing = new THREE.Mesh(
+            new THREE.TorusGeometry(0.4, 0.02, 16, 32),
+            materials.neonPurple
+        );
+        laserRing.position.y = 0.3;
+        
+        lidarGroup.add(lidarBase);
+        lidarGroup.add(lidarTop);
+        lidarGroup.add(laserRing);
+        lidarGroup.position.set(0, 1.2, 0);
+        lidarGroup.userData = { id: 'lidar', name: 'LiDAR', spinPart: laserRing };
+        lidarGroup.castShadow = true;
+        
+        vehicleGroup.add(lidarGroup);
+        explodableParts.push({
+            mesh: lidarGroup,
+            home: { x: 0, y: 1.2, z: 0 },
+            explode: { x: 0, y: 4, z: 0 }
+        });
+
+        // 4. CAMERA (Front)
+        const cameraGroup = new THREE.Group();
+        const cameraBody = new THREE.Mesh(
+            new THREE.BoxGeometry(0.6, 0.5, 0.3),
+            materials.carbon
+        );
+        
+        const lens = new THREE.Mesh(
+            new THREE.CircleGeometry(0.15, 32),
+            materials.neonCyan
+        );
+        lens.position.z = 0.16;
+        
+        const lensGlow = new THREE.Mesh(
+            new THREE.CircleGeometry(0.2, 32),
+            new THREE.MeshBasicMaterial({
+                color: 0x00f3ff,
+                transparent: true,
+                opacity: 0.3
+            })
+        );
+        lensGlow.position.z = 0.17;
+        
+        cameraGroup.add(cameraBody);
+        cameraGroup.add(lens);
+        cameraGroup.add(lensGlow);
+        cameraGroup.position.set(0, 0.3, 1.8);
+        cameraGroup.userData = { id: 'camera', name: 'CAMERA' };
+        cameraGroup.castShadow = true;
+        
+        vehicleGroup.add(cameraGroup);
+        explodableParts.push({
+            mesh: cameraGroup,
+            home: { x: 0, y: 0.3, z: 1.8 },
+            explode: { x: 0, y: 1.5, z: 4 }
+        });
+
+        // 5. JETSON BRAIN (Center)
+        const brainGroup = new THREE.Group();
+        const brainBoard = new THREE.Mesh(
+            new THREE.BoxGeometry(1.5, 0.4, 1),
+            materials.carbon
+        );
+        
+        // Circuit traces
+        for (let i = 0; i < 8; i++) {
+            const trace = new THREE.Mesh(
+                new THREE.BoxGeometry(0.08, 0.42, 1),
+                materials.neonPurple
+            );
+            trace.position.x = -0.6 + (i * 0.17);
+            brainBoard.add(trace);
+        }
+        
+        // Heatsink
+        const heatsink = new THREE.Mesh(
+            new THREE.BoxGeometry(0.8, 0.5, 0.6),
+            materials.metal
+        );
+        heatsink.position.y = 0.25;
+        
+        // Add fins
+        for (let i = 0; i < 5; i++) {
+            const fin = new THREE.Mesh(
+                new THREE.BoxGeometry(0.02, 0.5, 0.6),
+                materials.metal
+            );
+            fin.position.set(-0.3 + i * 0.15, 0.25, 0);
+            brainGroup.add(fin);
+        }
+        
+        // Pulsing LED
+        const led = new THREE.Mesh(
+            new THREE.SphereGeometry(0.05, 16, 16),
+            materials.neonPink
+        );
+        led.position.set(0.6, 0.25, 0.4);
+        
+        brainGroup.add(brainBoard);
+        brainGroup.add(heatsink);
+        brainGroup.add(led);
+        brainGroup.position.set(0, 0, 0);
+        brainGroup.userData = { id: 'brain', name: 'JETSON', pulseLED: led };
+        
+        vehicleGroup.add(brainGroup);
+        explodableParts.push({
+            mesh: brainGroup,
+            home: { x: 0, y: 0, z: 0 },
+            explode: { x: 0, y: 2, z: 0 }
+        });
+
+        // 6. ESP32 MCU (Rear)
+        const mcuGroup = new THREE.Group();
+        const mcuBoard = new THREE.Mesh(
+            new THREE.BoxGeometry(1, 0.3, 0.6),
+            new THREE.MeshStandardMaterial({ color: 0x004400 })
+        );
+        
+        // Pins
+        for (let i = 0; i < 15; i++) {
+            const pin = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.02, 0.02, 0.35, 8),
+                materials.metal
+            );
+            pin.position.set(-0.45 + i * 0.07, -0.15, i % 2 === 0 ? 0.25 : -0.25);
+            mcuGroup.add(pin);
+        }
+        
+        mcuGroup.add(mcuBoard);
+        mcuGroup.position.set(0, -0.3, -1.2);
+        mcuGroup.userData = { id: 'mcu', name: 'ESP32' };
+        
+        vehicleGroup.add(mcuGroup);
+        explodableParts.push({
+            mesh: mcuGroup,
+            home: { x: 0, y: -0.3, z: -1.2 },
+            explode: { x: 0, y: 1, z: -3 }
+        });
+
+        // 7. MOTOR DRIVER (Side)
+        const driverGroup = new THREE.Group();
+        const driverBoard = new THREE.Mesh(
+            new THREE.BoxGeometry(0.6, 0.8, 0.3),
+            materials.carbon
+        );
+        
+        // Heatsink tabs
+        const tab1 = new THREE.Mesh(
+            new THREE.BoxGeometry(0.7, 0.3, 0.05),
+            materials.metal
+        );
+        tab1.position.y = 0.3;
+        
+        const tab2 = new THREE.Mesh(
+            new THREE.BoxGeometry(0.7, 0.3, 0.05),
+            materials.metal
+        );
+        tab2.position.y = -0.3;
+        
+        driverGroup.add(driverBoard);
+        driverGroup.add(tab1);
+        driverGroup.add(tab2);
+        driverGroup.position.set(-2.2, 0, 0);
+        driverGroup.rotation.y = Math.PI / 2;
+        driverGroup.userData = { id: 'driver', name: 'MOTOR DRIVER' };
+        
+        vehicleGroup.add(driverGroup);
+        explodableParts.push({
+            mesh: driverGroup,
+            home: { x: -2.2, y: 0, z: 0 },
+            explode: { x: -4, y: 1, z: 0 }
+        });
+
+        // 8. DC MOTORS (4x - attached to wheels)
+        const motorGeom = new THREE.CylinderGeometry(0.3, 0.3, 0.8, 16);
+        wheelPositions.forEach((pos, i) => {
+            const motor = new THREE.Mesh(motorGeom, materials.metal);
+            motor.rotation.x = Math.PI / 2;
+            motor.rotation.z = Math.PI / 2;
+            motor.position.set(pos.x > 0 ? pos.x + 0.6 : pos.x - 0.6, -0.6, pos.z);
+            motor.userData = { id: 'motors', name: 'DC MOTOR' };
+            
+            // Shaft
+            const shaft = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.08, 0.08, 0.4, 16),
+                materials.neonCyan
+            );
+            shaft.rotation.y = Math.PI / 2;
+            shaft.position.x = pos.x > 0 ? 0.3 : -0.3;
+            motor.add(shaft);
+            
+            vehicleGroup.add(motor);
+            explodableParts.push({
+                mesh: motor,
+                home: { x: motor.position.x, y: motor.position.y, z: motor.position.z },
+                explode: { x: motor.position.x * 1.5, y: -1.5, z: motor.position.z * 1.5 }
+            });
+        });
+
+        // 9. ULTRASONIC SENSORS (4x - sides)
+        const ultrasonicPositions = [
+            { x: 0, z: 1.6, r: 0 },
+            { x: 2.6, z: 0, r: Math.PI / 2 },
+            { x: 0, z: -1.6, r: Math.PI },
+            { x: -2.6, z: 0, r: -Math.PI / 2 }
+        ];
+        
+        ultrasonicPositions.forEach((pos, i) => {
+            const usGroup = new THREE.Group();
+            const usBody = new THREE.Mesh(
+                new THREE.BoxGeometry(0.3, 0.3, 0.15),
+                new THREE.MeshStandardMaterial({ color: 0x1a4d2e })
+            );
+            
+            // Transducers
+            const trans1 = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.08, 0.08, 0.16, 16),
+                materials.metal
+            );
+            trans1.rotation.x = Math.PI / 2;
+            trans1.position.set(-0.08, 0, 0.08);
+            
+            const trans2 = trans1.clone();
+            trans2.position.set(0.08, 0, 0.08);
+            
+            usGroup.add(usBody);
+            usGroup.add(trans1);
+            usGroup.add(trans2);
+            usGroup.position.set(pos.x, 0.2, pos.z);
+            usGroup.rotation.y = pos.r;
+            usGroup.userData = { id: 'ultrasonic', name: 'ULTRASONIC' };
+            
+            vehicleGroup.add(usGroup);
+            explodableParts.push({
+                mesh: usGroup,
+                home: { x: pos.x, y: 0.2, z: pos.z },
+                explode: { x: pos.x * 1.5, y: 0.5, z: pos.z * 1.5 }
+            });
+        });
+
+        // 10. GPS MODULE (Top Rear)
+        const gpsGroup = new THREE.Group();
+        const gpsBody = new THREE.Mesh(
+            new THREE.BoxGeometry(0.5, 0.15, 0.5),
+            new THREE.MeshStandardMaterial({ color: 0x0a3a5a })
+        );
+        
+        const gpsAntenna = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.05, 0.05, 0.4, 16),
+            materials.neonGreen
+        );
+        gpsAntenna.position.y = 0.3;
+        
+        const antennaTip = new THREE.Mesh(
+            new THREE.SphereGeometry(0.08, 16, 16),
+            materials.neonGreen
+        );
+        antennaTip.position.y = 0.5;
+        
+        gpsGroup.add(gpsBody);
+        gpsGroup.add(gpsAntenna);
+        gpsGroup.add(antennaTip);
+        gpsGroup.position.set(0, 1, -1);
+        gpsGroup.userData = { id: 'gps', name: 'GPS' };
+        
+        vehicleGroup.add(gpsGroup);
+        explodableParts.push({
+            mesh: gpsGroup,
+            home: { x: 0, y: 1, z: -1 },
+            explode: { x: 0, y: 3, z: -2 }
+        });
+
+        // 11. IMU SENSOR (Inside chassis - small cube)
+        const imuGroup = new THREE.Group();
+        const imuBody = new THREE.Mesh(
+            new THREE.BoxGeometry(0.3, 0.3, 0.3),
+            new THREE.MeshStandardMaterial({ color: 0x2a1a4a })
+        );
+        
+        // Axes indicators
+        const axisX = new THREE.Mesh(
+            new THREE.BoxGeometry(0.4, 0.02, 0.02),
+            new THREE.MeshBasicMaterial({ color: 0xff0000 })
+        );
+        const axisY = new THREE.Mesh(
+            new THREE.BoxGeometry(0.02, 0.4, 0.02),
+            new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+        );
+        const axisZ = new THREE.Mesh(
+            new THREE.BoxGeometry(0.02, 0.02, 0.4),
+            new THREE.MeshBasicMaterial({ color: 0x0000ff })
+        );
+        
+        imuGroup.add(imuBody);
+        imuGroup.add(axisX);
+        imuGroup.add(axisY);
+        imuGroup.add(axisZ);
+        imuGroup.position.set(1, 0, 0.5);
+        imuGroup.userData = { id: 'imu', name: 'IMU' };
+        
+        vehicleGroup.add(imuGroup);
+        explodableParts.push({
+            mesh: imuGroup,
+            home: { x: 1, y: 0, z: 0.5 },
+            explode: { x: 3, y: 1.5, z: 1.5 }
+        });
+
+        // 12. BATTERY PACK (Bottom)
+        const batteryGroup = new THREE.Group();
+        const batteryBody = new THREE.Mesh(
+            new THREE.BoxGeometry(2.5, 0.6, 1.5),
+            materials.carbon
+        );
+        
+        // Cells
+        for (let i = 0; i < 3; i++) {
+            const cell = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.3, 0.3, 0.5, 16),
+                materials.metal
+            );
+            cell.rotation.x = Math.PI / 2;
+            cell.position.set(-0.8 + i * 0.8, 0, 0);
+            batteryGroup.add(cell);
+            
+            // Terminal
+            const terminal = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.1, 0.1, 0.15, 16),
+                materials.neonPink
+            );
+            terminal.rotation.x = Math.PI / 2;
+            terminal.position.set(-0.8 + i * 0.8, 0, 0.35);
+            batteryGroup.add(terminal);
+        }
+        
+        batteryGroup.position.set(0, -0.8, 0);
+        batteryGroup.userData = { id: 'power', name: 'BATTERY' };
+        
+        vehicleGroup.add(batteryGroup);
+        explodableParts.push({
+            mesh: batteryGroup,
+            home: { x: 0, y: -0.8, z: 0 },
+            explode: { x: 0, y: -2, z: 0 }
+        });
+
+        // 13. VISUALIZATION SCREEN (Top display)
+        const screenGroup = new THREE.Group();
+        const screenFrame = new THREE.Mesh(
+            new THREE.BoxGeometry(1.2, 0.8, 0.05),
+            materials.carbon
+        );
+        
+        const screenDisplay = new THREE.Mesh(
+            new THREE.PlaneGeometry(1.1, 0.7),
+            new THREE.MeshBasicMaterial({
+                color: 0x00f3ff,
+                transparent: true,
+                opacity: 0.7
+            })
+        );
+        screenDisplay.position.z = 0.03;
+        
+        // Fake "map" texture
+        const mapLines = new THREE.Group();
+        for (let i = 0; i < 5; i++) {
+            const line = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.9, 0.02),
+                new THREE.MeshBasicMaterial({ color: 0xbc13fe })
+            );
+            line.position.set(0, -0.3 + i * 0.15, 0.04);
+            mapLines.add(line);
+        }
+        
+        screenGroup.add(screenFrame);
+        screenGroup.add(screenDisplay);
+        screenGroup.add(mapLines);
+        screenGroup.position.set(0, 0.5, -1.4);
+        screenGroup.rotation.x = Math.PI / 6;
+        screenGroup.userData = { id: 'display', name: 'DISPLAY' };
+        
+        vehicleGroup.add(screenGroup);
+        explodableParts.push({
+            mesh: screenGroup,
+            home: { x: 0, y: 0.5, z: -1.4 },
+            explode: { x: 0, y: 2.5, z: -3 }
+        });
+
+        scene.add(vehicleGroup);
+
+        // ============================================
+        // PARTICLE SYSTEM (Data Flow Effect)
+        // ============================================
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particleCount = 100;
+        const positions = new Float32Array(particleCount * 3);
+        const colors = new Float32Array(particleCount * 3);
+        
+        for (let i = 0; i < particleCount; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 15;
+            positions[i * 3 + 1] = Math.random() * 5;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 15;
+            
+            const color = new THREE.Color(Math.random() > 0.5 ? 0x00f3ff : 0xbc13fe);
+            colors[i * 3] = color.r;
+            colors[i * 3 + 1] = color.g;
+            colors[i * 3 + 2] = color.b;
+        }
+        
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.1,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending
+        });
+        
+        const particleSystem = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particleSystem);
+
+        // ============================================
+        // INTERACTION & STATE
+        // ============================================
+        let currentMode = 'explore';
+        let isExploded = false;
+        let autoRotate = false;
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('current-mode').textContent = mode.toUpperCase();
+            
+            // Update button states
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+            
+            switch(mode) {
+                case 'explore':
+                    setWireframeMode(false);
+                    setXRayMode(false);
+                    if (isExploded) toggleExplode();
+                    break;
+                case 'explode':
+                    setWireframeMode(false);
+                    setXRayMode(false);
+                    if (!isExploded) toggleExplode();
+                    break;
+                case 'wireframe':
+                    setWireframeMode(true);
+                    setXRayMode(false);
+                    if (isExploded) toggleExplode();
+                    break;
+                case 'xray':
+                    setWireframeMode(false);
+                    setXRayMode(true);
+                    if (isExploded) toggleExplode();
+                    break;
+            }
+        }
+
+        function toggleExplode() {
+            isExploded = !isExploded;
+            
+            explodableParts.forEach(part => {
+                const target = isExploded ? part.explode : part.home;
+                gsap.to(part.mesh.position, {
+                    x: target.x,
+                    y: target.y,
+                    z: target.z,
+                    duration: 1.5,
+                    ease: "power2.inOut"
+                });
+                
+                if (isExploded) {
+                    gsap.to(part.mesh.rotation, {
+                        y: part.mesh.rotation.y + Math.PI / 3,
+                        duration: 1.5,
+                        ease: "power2.inOut"
+                    });
+                } else {
+                    gsap.to(part.mesh.rotation, {
+                        y: 0,
+                        duration: 1.5,
+                        ease: "power2.inOut"
+                    });
+                }
+            });
+        }
+
+        function setWireframeMode(enabled) {
+            wireframeObjects.forEach(obj => {
+                obj.visible = enabled;
+            });
+            vehicleGroup.traverse(child => {
+                if (child.isMesh && child.material) {
+                    if (enabled) {
+                        child.material.wireframe = true;
+                    } else {
+                        child.material.wireframe = false;
+                    }
+                }
+            });
+        }
+
+        function setXRayMode(enabled) {
+            vehicleGroup.traverse(child => {
+                if (child.isMesh && child.material) {
+                    if (enabled) {
+                        child.material.transparent = true;
+                        child.material.opacity = 0.3;
+                    } else {
+                        if (child.material.transmission === undefined) {
+                            child.material.transparent = false;
+                            child.material.opacity = 1;
+                        }
+                    }
+                }
+            });
+        }
+
+        function onMouseClick(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(vehicleGroup.children, true);
+
+            if (intersects.length > 0) {
+                let selectedObj = intersects[0].object;
+                
+                // Traverse up to find object with userData
+                while (selectedObj && !selectedObj.userData.id && selectedObj.parent) {
+                    selectedObj = selectedObj.parent;
+                }
+
+                if (selectedObj && selectedObj.userData.id) {
+                    const data = componentData[selectedObj.userData.id];
+                    if (data) {
+                        showComponentPanel(data, selectedObj);
+                    }
+                }
+            }
+        }
+
+        function showComponentPanel(data, object3D) {
+            document.getElementById('comp-icon').textContent = data.icon;
+            document.getElementById('comp-title').textContent = data.title;
+            document.getElementById('comp-desc').innerHTML = data.desc;
+            document.getElementById('comp-role').innerHTML = data.role;
+            document.getElementById('comp-input').innerHTML = data.input;
+            document.getElementById('comp-output').innerHTML = data.output;
+            document.getElementById('comp-operation').innerHTML = data.operation;
+            document.getElementById('comp-unique').innerHTML = data.unique;
+            document.getElementById('comp-app').innerHTML = data.app;
+            document.getElementById('comp-specs').innerHTML = data.specs;
+            
+            document.getElementById('info-panel').classList.add('active');
+
+            // Camera animation to focus on component
+            const worldPos = new THREE.Vector3();
+            object3D.getWorldPosition(worldPos);
+            
+            const offset = isExploded ? 4 : 3;
+            const targetPos = new THREE.Vector3(
+                worldPos.x + offset,
+                worldPos.y + offset * 0.5,
+                worldPos.z + offset
+            );
+
+            gsap.to(camera.position, {
+                x: targetPos.x,
+                y: targetPos.y,
+                z: targetPos.z,
+                duration: 1.2,
+                ease: "power2.out",
+                onUpdate: () => {
+                    controls.target.copy(worldPos);
+                }
+            });
+
+            // Highlight effect
+            gsap.to(object3D.scale, {
+                x: 1.1,
+                y: 1.1,
+                z: 1.1,
+                duration: 0.5,
+                yoyo: true,
+                repeat: 1
+            });
+        }
+
+        function closePanel() {
+            document.getElementById('info-panel').classList.remove('active');
+        }
+
+        function resetCamera() {
+            closePanel();
+            gsap.to(camera.position, {
+                x: 12,
+                y: 8,
+                z: 12,
+                duration: 1.5,
+                ease: "power2.inOut"
+            });
+            gsap.to(controls.target, {
+                x: 0,
+                y: 0,
+                z: 0,
+                duration: 1.5,
+                ease: "power2.inOut"
+            });
+        }
+
+        function toggleAutoRotate() {
+            autoRotate = !autoRotate;
+            controls.autoRotate = autoRotate;
+            controls.autoRotateSpeed = 2.0;
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            const picker = document.getElementById('color-picker');
+            
+            if (isLight) {
+                // Set default light theme
+                updateCustomColor(picker.value);
+                picker.style.pointerEvents = 'auto';
+                picker.style.opacity = '1';
+                gridHelper.material.color.setHex(0x888888);
+                document.getElementById('theme-btn').textContent = '🌞 Light';
+            } else {
+                // Revert to dark theme
+                document.documentElement.style.removeProperty('--bg-void');
+                document.documentElement.style.removeProperty('--bg-dark');
+                document.documentElement.style.removeProperty('--glass-bg');
+                
+                scene.fog = new THREE.FogExp2(0x050510, 0.015);
+                scene.background = null; // Clear custom background
+                document.getElementById('canvas-container').style.background = ''; // Revert to CSS default
+                
+                gridHelper.material.color.setHex(0x00f3ff);
+                
+                picker.style.pointerEvents = 'none';
+                picker.style.opacity = '0';
+                document.getElementById('theme-btn').textContent = '🌑 Dark';
+            }
+        }
+
+        function updateCustomColor(hex) {
+            if (!document.body.classList.contains('light-mode')) {
+                toggleTheme();
+            }
+
+            // Update CSS Variables
+            document.documentElement.style.setProperty('--bg-void', hex);
+            
+            // Generate darker/lighter variants for glass/UI
+            const color = new THREE.Color(hex);
+            const dark = color.clone().multiplyScalar(0.9).getHexString();
+            const glass = `rgba(${color.r*255}, ${color.g*255}, ${color.b*255}, 0.8)`;
+            
+            document.documentElement.style.setProperty('--bg-dark', '#' + dark);
+            document.documentElement.style.setProperty('--glass-bg', glass);
+
+            // Update Three.js Scene
+            const hexInt = parseInt(hex.replace('#', '0x'));
+            scene.fog = new THREE.FogExp2(hexInt, 0.015);
+            scene.background = new THREE.Color(hexInt);
+            
+            // Update Canvas Background (Gradient)
+            const gradientStart = '#' + color.clone().offsetHSL(0, 0, 0.05).getHexString();
+            const gradientEnd = '#' + color.clone().offsetHSL(0, 0, -0.05).getHexString();
+            document.getElementById('canvas-container').style.background = 
+                `radial-gradient(ellipse at center, ${gradientStart} 0%, ${gradientEnd} 100%)`;
+        }
+
+        function toggleDataFlow() {
+            const overlay = document.getElementById('dataflow-overlay');
+            overlay.classList.toggle('active');
+        }
+
+        function showLiveDemo() {
+            alert('🗺️ LIVE MAP DEMO\n\nThis would launch an interactive 3D visualization showing:\n\n• Real-time point cloud rendering\n• Detected traffic signs overlaid in 3D space\n• Color-coded road surface quality\n• GPS-tagged infrastructure defects\n\n[Would require WebGL canvas with Three.js/Open3D integration]');
+        }
+
+        // Event Listeners
+        window.addEventListener('click', onMouseClick);
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') resetCamera();
+        });
+
+        // ============================================
+        // LIVE MAP VISUALIZATION (AUTONOMOUS MODE)
+        // ============================================
+        let isLiveMapActive = false;
+        const mapGroup = new THREE.Group();
+        scene.add(mapGroup);
+        mapGroup.visible = false;
+
+        // --- CONSTANTS ---
+        const LANE_WIDTH = 6;
+        const LANES = [-LANE_WIDTH, 0, LANE_WIDTH]; // Left, Center, Right
+        let currentLaneIndex = 1; // Start in Center
+        let targetLaneIndex = 1;
+        let vehicleX = 0; // Current interpolated X position
+        
+        // --- ASSETS GENERATION ---
+        
+        function createPolyCar(color) {
+            const carGroup = new THREE.Group();
+            
+            // Body
+            const body = new THREE.Mesh(
+                new THREE.BoxGeometry(2.2, 0.8, 4.5),
+                new THREE.MeshStandardMaterial({ color: color, roughness: 0.2, metalness: 0.8 })
+            );
+            body.position.y = 0.6;
+            carGroup.add(body);
+            
+            // Cabin
+            const cabin = new THREE.Mesh(
+                new THREE.BoxGeometry(1.8, 0.6, 2.5),
+                new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, metalness: 0.9 })
+            );
+            cabin.position.set(0, 1.3, -0.2);
+            carGroup.add(cabin);
+            
+            // Wheels
+            const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
+            const wheelMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            const wheelPos = [
+                {x: -1.1, z: 1.5}, {x: 1.1, z: 1.5},
+                {x: -1.1, z: -1.5}, {x: 1.1, z: -1.5}
+            ];
+            
+            wheelPos.forEach(p => {
+                const w = new THREE.Mesh(wheelGeo, wheelMat);
+                w.rotation.z = Math.PI/2;
+                w.position.set(p.x, 0.4, p.z);
+                carGroup.add(w);
+            });
+            
+            // Tail Lights
+            const tailLight = new THREE.Mesh(
+                new THREE.BoxGeometry(0.4, 0.2, 0.1),
+                new THREE.MeshBasicMaterial({ color: 0xff0000 })
+            );
+            const tl1 = tailLight.clone(); tl1.position.set(-0.8, 0.7, 2.25);
+            const tl2 = tailLight.clone(); tl2.position.set(0.8, 0.7, 2.25);
+            carGroup.add(tl1); carGroup.add(tl2);
+            
+            carGroup.castShadow = true;
+            return carGroup;
+        }
+
+        function createCyberBuilding() {
+            const group = new THREE.Group();
+            const width = 5 + Math.random() * 8;
+            const depth = 5 + Math.random() * 8;
+            const height = 10 + Math.random() * 30;
+            
+            // Core
+            const geometry = new THREE.BoxGeometry(width, height, depth);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: 0x0a0a1a,
+                transparent: true,
+                opacity: 0.9,
+                roughness: 0.1
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.y = height / 2;
+            group.add(mesh);
+            
+            // Edges
+            const edges = new THREE.EdgesGeometry(geometry);
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.3 }));
+            line.position.y = height / 2;
+            group.add(line);
+            
+            return group;
+        }
+
+        // 1. Road & Markings
+        const gridRoad = new THREE.GridHelper(100, 50, 0x111122, 0x050510);
+        gridRoad.position.set(0, -0.1, 0);
+        gridRoad.scale.z = 5;
+        mapGroup.add(gridRoad);
+        
+        // Lane markers
+        const laneMarkers = [];
+        for(let i=0; i<40; i++) {
+            const marker = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.2, 3),
+                new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 })
+            );
+            marker.rotation.x = -Math.PI/2;
+            marker.position.set(-LANE_WIDTH/2, 0, -200 + i*10);
+            mapGroup.add(marker);
+            laneMarkers.push(marker);
+            
+            const marker2 = marker.clone();
+            marker2.position.x = LANE_WIDTH/2;
+            mapGroup.add(marker2);
+            laneMarkers.push(marker2);
+        }
+
+        // 2. Procedural Buildings
+        const buildings = [];
+        for(let i = 0; i < 20; i++) {
+            const b = createCyberBuilding();
+            // Left Side
+            b.position.set(-25 - Math.random() * 20, 0, -i * 20);
+            mapGroup.add(b);
+            buildings.push(b);
+            
+            const b2 = createCyberBuilding();
+            // Right Side
+            b2.position.set(25 + Math.random() * 20, 0, -i * 20);
+            mapGroup.add(b2);
+            buildings.push(b2);
+        }
+
+        // 3. Traffic (Ghost Cars)
+        const ghostCars = [];
+        for(let i = 0; i < 5; i++) {
+            const car = createPolyCar(Math.random() > 0.5 ? 0xaaaaaa : 0x555555);
+            // Spawn in random lane
+            const lane = Math.floor(Math.random() * 3);
+            car.position.set(LANES[lane], 0, -50 - Math.random() * 100);
+            car.userData = { lane: lane, speed: 0.3 + Math.random() * 0.2 }; // Slower than us
+            mapGroup.add(car);
+            ghostCars.push(car);
+        }
+
+        // 4. Path Visualization (Spline)
+        const pathPoints = [];
+        for(let i=0; i<10; i++) pathPoints.push(new THREE.Vector3(0, 0.5, -i*5));
+        const pathCurve = new THREE.CatmullRomCurve3(pathPoints);
+        const pathGeo = new THREE.TubeGeometry(pathCurve, 20, 0.1, 8, false);
+        const pathMat = new THREE.MeshBasicMaterial({ color: 0x39ff14, transparent: true, opacity: 0.8 });
+        const pathMesh = new THREE.Mesh(pathGeo, pathMat);
+        mapGroup.add(pathMesh);
+
+
+        function enterLiveMap() {
+            isLiveMapActive = true;
+            mapGroup.visible = true;
+            vehicleX = 0;
+            currentLaneIndex = 1;
+            targetLaneIndex = 1;
+            
+            // Driver View
+            gsap.to(camera.position, {x: 0, y: 1.5, z: 2, duration: 1.5, ease: "power2.inOut"});
+            gsap.to(controls.target, {x: 0, y: 1.5, z: -20, duration: 1.5});
+            
+            // Hide exterior vehicle
+            gsap.to(vehicleGroup.scale, {x: 0, y: 0, z: 0, duration: 0.5});
+            
+            // HUD
+            document.getElementById('hud-layer').classList.add('active');
+            
+            const btn = document.querySelector('.btn.purple');
+            if(btn) {
+                 btn.textContent = "❌ Disable Autopilot";
+                 btn.onclick = exitLiveMap;
+                 btn.classList.add('active');
+            }
+        }
+
+        function exitLiveMap() {
+            isLiveMapActive = false;
+            mapGroup.visible = false;
+            
+            gsap.to(vehicleGroup.scale, {x: 1, y: 1, z: 1, duration: 0.5});
+            document.getElementById('hud-layer').classList.remove('active');
+            resetCamera();
+            
+            const btn = document.querySelector('.btn.purple');
+            if(btn) {
+                 btn.textContent = "🗺️ Live Map Demo";
+                 btn.onclick = enterLiveMap;
+                 btn.classList.remove('active');
+            }
+        }
+
+        window.showLiveDemo = enterLiveMap;
+
+        // ============================================
+        // ANIMATION LOOP
+        // ============================================
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.01;
+
+            if (isLiveMapActive) {
+                const speed = 0.8;
+                
+                // --- 1. AUTONOMOUS LOGIC ---
+                // Detect obstacles in current lane
+                let obstacleAhead = false;
+                let minDist = 999;
+                
+                ghostCars.forEach(c => {
+                    // Check if car is in our lane and ahead of us
+                    // In our coord system, "ahead" is negative Z
+                    // But ghost cars move from -Z to +Z (towards us?)
+                    // Wait, previous logic: "z += speed". if > 20 reset to -200.
+                    // This means they move from far (-200) to close (+20).
+                    // So they are approaching from behind if we are stationary?
+                    // NO. In a driving sim, objects usually move towards +Z (if camera looks -Z).
+                    // Camera looks -Z. Objects move +Z. This simulates us moving forward. Correct.
+                    
+                    const dist = c.position.z; // -200 to +20
+                    // If car is ahead (negative Z) and close (e.g., > -40)
+                    if(c.userData.lane === currentLaneIndex && dist > -60 && dist < 10) {
+                        obstacleAhead = true;
+                    }
+                    if(Math.abs(dist) < minDist) minDist = Math.abs(dist);
+                });
+
+                if(obstacleAhead && Math.abs(vehicleX - LANES[targetLaneIndex]) < 0.1) {
+                    // Try to change lane
+                    const left = currentLaneIndex - 1;
+                    const right = currentLaneIndex + 1;
+                    let foundLane = false;
+                    
+                    // Check Left
+                    if(left >= 0) {
+                        // Is left clear?
+                        const clear = !ghostCars.some(c => c.userData.lane === left && c.position.z > -60 && c.position.z < 10);
+                        if(clear) {
+                            targetLaneIndex = left;
+                            foundLane = true;
+                            document.querySelector('.hud-center-reticle').style.borderColor = 'var(--neon-green)';
+                        }
+                    }
+                    
+                    // If not left, Check Right
+                    if(!foundLane && right <= 2) {
+                        const clear = !ghostCars.some(c => c.userData.lane === right && c.position.z > -60 && c.position.z < 10);
+                        if(clear) {
+                            targetLaneIndex = right;
+                            foundLane = true;
+                            document.querySelector('.hud-center-reticle').style.borderColor = 'var(--neon-green)';
+                        }
+                    }
+                    
+                    if(foundLane) {
+                        currentLaneIndex = targetLaneIndex;
+                        // Animate lane change
+                        gsap.to({x: vehicleX}, {
+                            x: LANES[targetLaneIndex], 
+                            duration: 1.0, 
+                            ease: "power2.inOut",
+                            onUpdate: function() { vehicleX = this.targets()[0].x; }
+                        });
+                    } else {
+                        // Emergency Brake / Alert
+                        document.querySelector('.hud-center-reticle').style.borderColor = 'var(--neon-red)';
+                    }
+                } else {
+                     // Interpolate vehicleX manually if not using GSAP for continuous updates
+                     vehicleX += (LANES[targetLaneIndex] - vehicleX) * 0.05;
+                }
+
+                // --- 2. CAMERA UPDATE ---
+                camera.position.x = vehicleX;
+                controls.target.x = vehicleX;
+                
+                // --- 3. PATH SPLINE UPDATE ---
+                // Update control points to curve from current X to target X
+                const curvePoints = pathCurve.points;
+                for(let i=0; i<curvePoints.length; i++) {
+                    const ratio = i / (curvePoints.length - 1); // 0 to 1
+                    // 0 is closest to car, 1 is furthest
+                    // X should blend from vehicleX to LANES[targetLaneIndex]
+                    // But since target changes instantly, the curve should reflect the "future" path
+                    
+                    // Simple approach: Curve bends towards target lane at the far end
+                    const targetX = LANES[targetLaneIndex];
+                    curvePoints[i].x = vehicleX * (1-ratio) + targetX * ratio;
+                    
+                    // Add some wiggle for "scanning" effect
+                    curvePoints[i].x += Math.sin(time * 10 + i) * 0.05;
+                }
+                pathMesh.geometry.dispose();
+                pathMesh.geometry = new THREE.TubeGeometry(pathCurve, 20, 0.1, 8, false);
+
+
+                // --- 4. SCENE ANIMATION ---
+                // Buildings
+                buildings.forEach(b => {
+                    b.position.z += speed;
+                    if(b.position.z > 20) b.position.z = -200 - Math.random() * 50;
+                });
+
+                // Lane Markers
+                laneMarkers.forEach(m => {
+                    m.position.z += speed;
+                    if(m.position.z > 10) m.position.z = -200;
+                });
+
+                // Ghost Cars
+                ghostCars.forEach(c => {
+                    c.position.z += c.userData.speed; // They move slower relative to world (so they approach us? No wait)
+                    // If we move at Speed V_us (e.g. 1.0), and World moves +1.0.
+                    // If Car moves +0.5, it means it is moving TOWARDS us relative to world frame? 
+                    // No. Relative speed.
+                    // Let's say Frame of ref is Us. World moves +Z.
+                    // If Car is moving slower than us (V_car < V_us), it should approach us from -Z to +Z faster?
+                    // Actually, simpler: Everything moves +Z.
+                    // Faster objects move +Z faster.
+                    
+                    // If we want to "overtake" them, they need to move +Z *slower* than the road? 
+                    // No, Road moves +Z at 'speed'. 
+                    // If car moves +Z at 'speed - 0.2', it effectively moves -Z relative to road (backing up).
+                    // To overtake, we want them to spawn at -Z and move +Z SLOWER than the road? 
+                    // No, if they are "ahead" (-100) and we "catch up", they must move towards +Z faster than road?
+                    // Let's just make them move +Z. If they move +Z at 'speed + 0.3', they approach the camera fast.
+                    
+                    c.position.z += speed + (0.8 - c.userData.speed); // Relative speed approach
+                    
+                    if(c.position.z > 15) {
+                        c.position.z = -200 - Math.random() * 100;
+                        // Respawn in random lane
+                        const l = Math.floor(Math.random() * 3);
+                        c.userData.lane = l;
+                        c.position.x = LANES[l];
+                    }
+                });
+                
+                // Grid Road
+                gridRoad.position.z += speed;
+                if(gridRoad.position.z > 5) gridRoad.position.z = 0;
+
+                // HUD Stats
+                document.getElementById('hud-speed').textContent = Math.floor(120 + Math.sin(time) * 2);
+                document.getElementById('hud-obj-count').textContent = ghostCars.length;
+                document.getElementById('hud-dist').textContent = minDist.toFixed(1) + " m";
+            }
+
+            // Rotate LiDAR
+            if (lidarGroup.userData.spinPart) {
+                lidarGroup.userData.spinPart.rotation.y -= 0.05;
+            }
+
+            // Pulse Jetson LED
+            if (brainGroup.userData.pulseLED) {
+                brainGroup.userData.pulseLED.material.emissiveIntensity = 1 + Math.sin(time * 3) * 0.5;
+            }
+
+            // Animate particles
+            const positions = particleSystem.geometry.attributes.position.array;
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3 + 1] += 0.02;
+                if (positions[i * 3 + 1] > 5) {
+                    positions[i * 3 + 1] = 0;
+                }
+            }
+            particleSystem.geometry.attributes.position.needsUpdate = true;
+            particleSystem.rotation.y += 0.001;
+
+            // Gentle floating animation
+            vehicleGroup.position.y = Math.sin(time * 0.5) * 0.15;
+            vehicleGroup.rotation.y = Math.sin(time * 0.3) * 0.02;
+
+            // Rotate wheels if in explore mode
+            if (currentMode === 'explore' && !isExploded) {
+                vehicleGroup.children.forEach(child => {
+                    if (child.userData.isWheel) {
+                        child.rotation.x += 0.02;
+                    }
+                });
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // ============================================
+        // RESPONSIVE & INITIALIZATION
+        // ============================================
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Hide loader and start
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                gsap.to('#loader', {
+                    opacity: 0,
+                    duration: 1,
+                    onComplete: () => {
+                        document.getElementById('loader').style.display = 'none';
+                    }
+                });
+                animate();
+            }, 2000);
+        });
+
+    </script>
+</body>
+</html>

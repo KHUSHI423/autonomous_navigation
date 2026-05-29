@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automotive Navigation | CIT Coimbatore</title>
+    
+    <!-- MapLibre GL JS -->
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="static/style.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Main Container -->
+    <div class="adas-container">
+        
+        <!-- Map Container -->
+        <div id="map"></div>
+        
+        <!-- Top HUD -->
+        <header class="hud-top">
+            <div class="hud-brand">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 50 50" fill="none">
+                        <circle cx="25" cy="25" r="22" stroke="#00ffff" stroke-width="2"/>
+                        <path d="M25 12 L25 25 L35 35" stroke="#00ffff" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="25" cy="25" r="4" fill="#00ffff"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-title">NAVIGATION</span>
+                    <span class="brand-subtitle">CIT COIMBATORE</span>
+                </div>
+            </div>
+            
+            <div class="hud-status">
+                <div class="status-indicator" id="systemStatus">
+                    <span class="status-light"></span>
+                    <span class="status-label">STANDBY</span>
+                </div>
+            </div>
+            
+            <div class="hud-time">
+                <div class="time-display" id="currentTime">00:00:00</div>
+                <div class="date-display" id="currentDate">2024-01-01</div>
+            </div>
+        </header>
+        
+        <!-- Left Panel - Speed & Vehicle -->
+        <aside class="panel-left">
+            <!-- Speed Display -->
+            <div class="speed-display">
+                <div class="speed-value" id="speedValue">0</div>
+                <div class="speed-unit">KM/H</div>
+                <div class="speed-graph">
+                    <canvas id="speedGraph"></canvas>
+                </div>
+            </div>
+            
+            <!-- Compass -->
+            <div class="compass-display">
+                <div class="compass-ring" id="compassRing">
+                    <div class="compass-directions">
+                        <span class="dir-n">N</span>
+                        <span class="dir-e">E</span>
+                        <span class="dir-s">S</span>
+                        <span class="dir-w">W</span>
+                    </div>
+                    <div class="compass-needle"></div>
+                </div>
+                <div class="heading-display">
+                    <span class="heading-value" id="headingValue">0</span>
+                    <span class="heading-unit">°</span>
+                </div>
+                <div class="heading-cardinal" id="cardinalDir">N</div>
+            </div>
+            
+            <!-- Vehicle Status -->
+            <div class="vehicle-status">
+                <div class="status-item">
+                    <span class="status-icon">🛰️</span>
+                    <span class="status-text" id="satelliteCount">0</span>
+                    <span class="status-label">SATELLITES</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">📍</span>
+                    <span class="status-text" id="accuracyValue">0.0</span>
+                    <span class="status-label">ACCURACY (M)</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">📶</span>
+                    <div class="signal-bars" id="signalBars">
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                    </div>
+                    <span class="status-label">SIGNAL</span>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Right Panel - Navigation & Trip -->
+        <aside class="panel-right">
+            <!-- Trip Computer -->
+            <div class="trip-computer">
+                <div class="panel-title">
+                    <span>📊</span> TRIP COMPUTER
+                </div>
+                <div class="trip-data">
+                    <div class="trip-row">
+                        <span class="trip-label">ELAPSED TIME</span>
+                        <span class="trip-value" id="elapsedTime">00:00:00</span>
+                    </div>
+                    <div class="trip-row">
+                        <span class="trip-label">DISTANCE</span>
+                        <span class="trip-value" id="tripDistance">0.00 KM</span>
+                    </div>
+                    <div class="trip-row">
+                        <span class="trip-label">AVG SPEED</span>
+                        <span class="trip-value" id="avgSpeed">0 KM/H</span>
+                    </div>
+                    <div class="trip-row">
+                        <span class="trip-label">MAX SPEED</span>
+                        <span class="trip-value" id="maxSpeed">0 KM/H</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- GPS Coordinates -->
+            <div class="gps-coordinates">
+                <div class="panel-title">
+                    <span>🌍</span> GPS COORDINATES
+                </div>
+                <div class="coord-display">
+                    <div class="coord-row">
+                        <span class="coord-label">LATITUDE</span>
+                        <span class="coord-value" id="latValue">00.000000</span>
+                    </div>
+                    <div class="coord-row">
+                        <span class="coord-label">LONGITUDE</span>
+                        <span class="coord-value" id="lonValue">00.000000</span>
+                    </div>
+                    <div class="coord-row">
+                        <span class="coord-label">ALTITUDE</span>
+                        <span class="coord-value" id="altValue">000 M</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Map Controls -->
+            <div class="map-controls">
+                <div class="panel-title">
+                    <span>🎮</span> MAP CONTROLS
+                </div>
+                <div class="control-buttons">
+                    <button class="ctrl-btn" id="btnTiltUp" title="Tilt Up">⌃</button>
+                    <button class="ctrl-btn" id="btnTiltDown" title="Tilt Down">⌄</button>
+                    <button class="ctrl-btn" id="btnZoomIn" title="Zoom In">+</button>
+                    <button class="ctrl-btn" id="btnZoomOut" title="Zoom Out">−</button>
+                    <button class="ctrl-btn" id="btnCenter" title="Center">⌖</button>
+                    <button class="ctrl-btn" id="btn3D" title="3D Toggle">◧</button>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Bottom Control Bar -->
+        <footer class="control-bar">
+            <div class="control-left">
+                <button class="btn-main btn-start" id="btnStart">
+                    <span class="btn-icon">▶</span> START NAVIGATION
+                </button>
+                <button class="btn-main btn-stop" id="btnStop" disabled>
+                    <span class="btn-icon">⏸</span> STOP
+                </button>
+                <button class="btn-main btn-reset" id="btnReset">
+                    <span class="btn-icon">↺</span> RESET
+                </button>
+            </div>
+            
+            <div class="control-center">
+                <div class="mode-indicator">
+                    <span class="mode-dot active"></span>
+                    <span class="mode-text">NAVIGATION MODE</span>
+                </div>
+            </div>
+            
+            <div class="control-right">
+                <div class="location-badge">
+                    <span class="loc-icon">📍</span>
+                    <span class="loc-text">CIT COIMBATORE</span>
+                </div>
+            </div>
+        </footer>
+        
+        <!-- Notifications -->
+        <div class="notifications" id="notifications">
+            <div class="notification info">
+                <span class="notif-icon">ℹ</span>
+                <span class="notif-text">System Ready - Click START for navigation</span>
+            </div>
+        </div>
+        
+        <!-- Loading Screen -->
+        <div class="loading-screen" id="loadingScreen">
+            <div class="loading-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <div class="loading-text">INITIALIZING NAVIGATION</div>
+            <div class="loading-subtext">Loading 3D Map & Vehicle Data...</div>
+        </div>
+    </div>
+    
+    <!-- Custom Scripts -->
+    <script src="static/script.js"></script>
+</body>
+</html>

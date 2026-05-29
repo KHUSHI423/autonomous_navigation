@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚑 Ambulance Mode - 3D Visualization</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/mode-3d.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body class="mode-page">
+    <div class="cyber-grid"></div>
+    <div class="particles" id="particles"></div>
+
+    <!-- Navigation Header -->
+    <nav class="mode-nav">
+        <div class="nav-content">
+            <a href="index.html" class="back-btn">
+                <span class="back-arrow">←</span>
+                <span>Back to Hub</span>
+            </a>
+            <div class="mode-title">
+                <span class="mode-icon">🚑</span>
+                <h1>Ambulance Mode</h1>
+            </div>
+            <div class="mode-status">
+                <span class="status-indicator live"></span>
+                <span>LIVE</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main 3D Container -->
+    <div class="mode-container">
+        <!-- 3D Viewport -->
+        <div class="viewport-3d" id="viewport3d">
+            <div class="viewport-overlay">
+                <div class="overlay-corner top-left"></div>
+                <div class="overlay-corner top-right"></div>
+                <div class="overlay-corner bottom-left"></div>
+                <div class="overlay-corner bottom-right"></div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <!-- Mode Info -->
+            <div class="panel-section">
+                <h3>🚨 Priority Status</h3>
+                <div class="mission-display">
+                    <div class="mission-item">
+                        <span class="mission-label">Emergency Level</span>
+                        <span class="mission-value" style="color: #ff4444;" id="emergencyLevel">CRITICAL</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Distance to Hospital</span>
+                        <span class="mission-value" id="distanceToGoal">1.8 km</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">ETA</span>
+                        <span class="mission-value" id="eta">4m 30s</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Signal Broadcast</span>
+                        <span class="mission-value status-ok" id="broadcastStatus">Active</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Telemetry -->
+            <div class="panel-section">
+                <h3>📊 Live Telemetry</h3>
+                <div class="telemetry-grid">
+                    <div class="telemetry-item">
+                        <span class="tele-label">Speed</span>
+                        <span class="tele-value" id="speedValue">4.2</span>
+                        <span class="tele-unit">m/s</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Battery</span>
+                        <span class="tele-value" id="batteryValue">92</span>
+                        <span class="tele-unit">%</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">GPS Signal</span>
+                        <span class="tele-value" id="gpsSignal">14</span>
+                        <span class="tele-unit">sats</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Ultrasonic</span>
+                        <span class="tele-value" id="ultrasonicValue">38.5</span>
+                        <span class="tele-unit">cm</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Priority Signal -->
+            <div class="panel-section">
+                <h3>📡 Priority Signal</h3>
+                <div class="priority-signal-display">
+                    <div class="signal-wave">
+                        <div class="wave-ring"></div>
+                        <div class="wave-ring"></div>
+                        <div class="wave-ring"></div>
+                    </div>
+                    <div class="signal-info">
+                        <span>Broadcasting on 2.4GHz</span>
+                        <span>Range: 500m</span>
+                        <span>Vehicles Alerted: 12</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="panel-section">
+                <h3>🎮 Controls</h3>
+                <div class="button-grid">
+                    <button class="action-btn btn-danger" id="btnStartAmbulance">
+                        <span class="btn-icon">🚨</span>
+                        Start Emergency
+                    </button>
+                    <button class="action-btn btn-warning" id="btnPause">
+                        <span class="btn-icon">⏸️</span>
+                        Hold Position
+                    </button>
+                    <button class="action-btn btn-danger" id="btnEmergencyStop">
+                        <span class="btn-icon">🛑</span>
+                        Emergency Stop
+                    </button>
+                    <button class="action-btn btn-success" id="btnCompleteMission">
+                        <span class="btn-icon">✅</span>
+                        Mission Complete
+                    </button>
+                </div>
+            </div>
+
+            <!-- Camera Feed -->
+            <div class="panel-section">
+                <h3>🎥 Live Camera Feed</h3>
+                <div class="camera-feed" id="cameraFeed">
+                    <div class="feed-placeholder">
+                        <span class="feed-icon">📹</span>
+                        <span class="feed-text">Waiting for video stream...</span>
+                        <span class="feed-subtext">Port: 5000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Modal for Mission Complete -->
+    <div class="modal" id="deliveryModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-icon">🏥</span>
+                <h2>Emergency Response Complete!</h2>
+            </div>
+            <div class="modal-body">
+                <div class="delivery-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">Total Distance</span>
+                        <span class="summary-value">2.4 km</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Response Time</span>
+                        <span class="summary-value">5m 12s</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Vehicles Cleared</span>
+                        <span class="summary-value">15</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Signals Sent</span>
+                        <span class="summary-value">48</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn btn-primary" onclick="closeModal()">New Emergency</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .priority-signal-display {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: rgba(255, 68, 68, 0.05);
+            border-radius: 12px;
+        }
+
+        .signal-wave {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+
+        .wave-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 3px solid #ff4444;
+            border-radius: 50%;
+            animation: wavePulse 1.5s ease-out infinite;
+        }
+
+        .wave-ring:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+
+        .wave-ring:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        @keyframes wavePulse {
+            0% {
+                transform: scale(0.5);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        .signal-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .signal-info span {
+            display: block;
+        }
+    </style>
+
+    <script src="js/particles.js"></script>
+    <script src="js/ambulance-mode-3d.js"></script>
+    <script src="js/mode-controls.js"></script>
+</body>
+</html>

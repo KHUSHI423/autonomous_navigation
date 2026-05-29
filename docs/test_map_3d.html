@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EdgeDrive3D — 3D Perception Visual System</title>
+<style>
+  :root {
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #12121a;
+    --bg-tertiary: #1a1a28;
+    --bg-card: #16161f;
+    --bg-card-hover: #1e1e2a;
+    --border-subtle: rgba(255,255,255,0.06);
+    --border-medium: rgba(255,255,255,0.1);
+    --text-primary: #f5f5f7;
+    --text-secondary: #a1a1a6;
+    --text-tertiary: #6e6e73;
+    --vehicle-blue: #0a84ff;
+    --vehicle-cyan: #5ac8fa;
+    --vehicle-amber: #ff9f0a;
+    --vehicle-magenta: #ff375f;
+    --pedestrian-yellow: #ffd60a;
+    --animal-purple: #bf5af2;
+    --hazard-orange: #ff6723;
+    --ego-green: #30d158;
+    --ego-green-glow: rgba(48,209,88,0.4);
+    --sign-red: #ff453a;
+    --sign-blue: #0a84ff;
+    --road-gray: #3a3a4a;
+    --road-marking: #e8e8ed;
+    --warning-red: #ff453a;
+    --collision-red: #ff2d55;
+    --glass-bg: rgba(30,30,45,0.7);
+    --glass-border: rgba(255,255,255,0.08);
+    --shadow-soft: 0 4px 24px rgba(0,0,0,0.4);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 28px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 3px; }
+
+  #canvas3d {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  .header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(10,10,15,0.75);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-brand h1 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #fff 0%, #a1a1a6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header-badge {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, var(--ego-green), var(--vehicle-cyan));
+    color: #000;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .header-status {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ego-green);
+    box-shadow: 0 0 8px var(--ego-green-glow);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.3); }
+  }
+
+  /* HUD OVERLAY PANELS */
+  .hud-overlay {
+    position: fixed;
+    z-index: 50;
+    pointer-events: none;
+  }
+  .hud-overlay > * {
+    pointer-events: auto;
+  }
+
+  /* Top-left: Speed & Status */
+  .hud-top-left {
+    top: 65px;
+    left: 20px;
+  }
+  .speed-display {
+    background: rgba(10,10,15,0.8);
+    backdrop-filter: blur(30px);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 20px 24px;
+    text-align: center;
+    min-width: 140px;
+    margin-bottom: 12px;
+  }
+  .speed-value {
+    font-size: 56px;
+    font-weight: 800;
+    letter-spacing: -3px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(180deg, #fff 0%, #a1a1a6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .speed-unit {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    margin-top: 4px;
+  }
+  .gear-indicator {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-top: 12px;
+  }
+  .gear-item {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-tertiary);
+    border: 1px solid transparent;
+    transition: all 0.3s;
+  }
+  .gear-item.active {
+    background: rgba(48,209,88,0.15);
+    color: var(--ego-green);
+    border-color: rgba(48,209,88,0.3);
+  }
+
+  /* Status cards */
+  .status-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .status-card {
+    background: rgba(10,10,15,0.8);
+    backdrop-filter: blur(30px);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 180px;
+  }
+  .status-card-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .status-card-info {
+    flex: 1;
+  }
+  .status-card-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+  .status-card-value {
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.5px;
+  }
+
+  /* Top-right: Detection Panel */
+  .hud-top-right {
+    top: 65px;
+    right: 20px;
+  }
+  .detection-panel {
+    background: rgba(10,10,15,0.8);
+    backdrop-filter: blur(30px);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 16px;
+    min-width: 260px;
+    max-width: 300px;
+  }
+  .detection-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .detection-panel-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+  .detection-count {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--vehicle-cyan);
+    background: rgba(90,200,250,0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .detection-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .detection-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    background: rgba(255,255,255,0.03);
+    transition: background 0.2s;
+    cursor: pointer;
+  }
+  .detection-item:hover {
+    background: rgba(255,255,255,0.06);
+  }
+  .detection-item-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .detection-item-name {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .detection-item-dist {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .detection-item-conf {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.06);
+  }
+
+  /* Bottom: Warning Bar */
+  .hud-bottom {
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .warning-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .warning-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 24px;
+    font-size: 12px;
+    font-weight: 600;
+    backdrop-filter: blur(30px);
+    transition: all 0.3s;
+    white-space: nowrap;
+  }
+  .warning-pill.danger {
+    background: rgba(255,45,85,0.2);
+    border: 1px solid rgba(255,45,85,0.4);
+    color: var(--collision-red);
+    animation: pulse-warning-bg 1.5s ease-in-out infinite;
+  }
+  .warning-pill.caution {
+    background: rgba(255,159,10,0.15);
+    border: 1px solid rgba(255,159,10,0.3);
+    color: var(--vehicle-amber);
+  }
+  .warning-pill.info {
+    background: rgba(90,200,250,0.1);
+    border: 1px solid rgba(90,200,250,0.2);
+    color: var(--vehicle-cyan);
+  }
+  .warning-pill-icon {
+    font-size: 16px;
+  }
+  @keyframes pulse-warning-bg {
+    0%, 100% { box-shadow: 0 0 20px rgba(255,45,85,0.2); }
+    50% { box-shadow: 0 0 40px rgba(255,45,85,0.4); }
+  }
+
+  /* Bottom-left: Mini BEV Map */
+  .hud-bottom-left {
+    bottom: 20px;
+    left: 20px;
+  }
+  .mini-bev {
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(30px);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    width: 220px;
+    height: 220px;
+    position: relative;
+  }
+  .mini-bev-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    background: rgba(10,10,15,0.6);
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+  }
+  .mini-bev canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Bottom-right: System Stats */
+  .hud-bottom-right {
+    bottom: 20px;
+    right: 20px;
+  }
+  .system-stats {
+    background: rgba(10,10,15,0.8);
+    backdrop-filter: blur(30px);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 14px 16px;
+    min-width: 180px;
+  }
+  .system-stats-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 10px;
+  }
+  .stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .stat-value {
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-bar {
+    width: 100%;
+    height: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    margin-top: 4px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .stat-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  /* Traffic Sign display */
+  .sign-display {
+    background: rgba(10,10,15,0.8);
+    backdrop-filter: blur(30px);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 14px;
+    margin-top: 12px;
+  }
+  .sign-display-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 10px;
+  }
+  .sign-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .sign-item {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sign-item:hover {
+    background: rgba(255,255,255,0.08);
+    transform: scale(1.05);
+  }
+  .sign-item svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Compass */
+  .compass-widget {
+    position: fixed;
+    top: 65px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    background: rgba(10,10,15,0.7);
+    backdrop-filter: blur(30px);
+    border: 1px solid var(--border-subtle);
+    border-radius: 30px;
+    padding: 6px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .compass-direction {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    min-width: 30px;
+    text-align: center;
+  }
+  .compass-bearing {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+  .compass-strip {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow: hidden;
+    width: 200px;
+    height: 24px;
+    position: relative;
+  }
+  .compass-strip::before,
+  .compass-strip::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 30px;
+    z-index: 2;
+  }
+  .compass-strip::before {
+    left: 0;
+    background: linear-gradient(90deg, rgba(10,10,15,0.7), transparent);
+  }
+  .compass-strip::after {
+    right: 0;
+    background: linear-gradient(-90deg, rgba(10,10,15,0.7), transparent);
+  }
+  .compass-marker {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: var(--ego-green);
+    transform: translateX(-50%);
+    z-index: 3;
+  }
+
+  /* View controls */
+  .view-controls {
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .view-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(10,10,15,0.8);
+    backdrop-filter: blur(30px);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 16px;
+  }
+  .view-btn:hover {
+    background: rgba(30,30,45,0.9);
+    border-color: var(--border-medium);
+    color: var(--text-primary);
+  }
+  .view-btn.active {
+    background: rgba(48,209,88,0.15);
+    border-color: rgba(48,209,88,0.3);
+    color: var(--ego-green);
+  }
+
+  /* Loading screen */
+  .loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-primary);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+  }
+  .loading-screen.hidden {
+    opacity: 0;
+    visibility: hidden;
+  }
+  .loading-logo {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 24px;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  .loading-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+  }
+  .loading-bar {
+    width: 200px;
+    height: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .loading-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ego-green), var(--vehicle-cyan));
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  /* Tooltip */
+  .tooltip-3d {
+    position: fixed;
+    z-index: 200;
+    background: rgba(10,10,15,0.9);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    max-width: 200px;
+  }
+  .tooltip-3d.visible {
+    opacity: 1;
+  }
+  .tooltip-3d-title {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .tooltip-3d-info {
+    font-size: 10px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  /* Legend overlay */
+  .legend-overlay {
+    position: fixed;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    display: flex;
+    gap: 16px;
+    background: rgba(10,10,15,0.7);
+    backdrop-filter: blur(30px);
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    padding: 8px 20px;
+  }
+  .legend-item-3d {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--text-secondary);
+  }
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 3px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .detection-panel { display: none; }
+    .legend-overlay { display: none; }
+    .compass-widget { display: none; }
+    .view-controls { display: none; }
+    .speed-display { padding: 14px 18px; min-width: 100px; }
+    .speed-value { font-size: 40px; }
+    .mini-bev { width: 160px; height: 160px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div class="loading-screen" id="loadingScreen">
+  <svg class="loading-logo" viewBox="0 0 60 60">
+    <defs>
+      <linearGradient id="loadGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#30d158"/>
+        <stop offset="100%" stop-color="#0a84ff"/>
+      </linearGradient>
+    </defs>
+    <rect width="60" height="60" rx="15" fill="url(#loadGrad)"/>
+    <path d="M16 30 L30 16 L44 30 L30 44 Z" fill="rgba(0,0,0,0.3)" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="30" cy="30" r="4" fill="#fff"/>
+  </svg>
+  <div class="loading-text">Initializing 3D Perception Engine...</div>
+  <div class="loading-bar">
+    <div class="loading-bar-fill" id="loadingBarFill"></div>
+  </div>
+</div>
+
+<!-- 3D Canvas -->
+<canvas id="canvas3d"></canvas>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-brand">
+    <svg width="28" height="28" viewBox="0 0 28 28">
+      <defs>
+        <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#30d158"/>
+          <stop offset="100%" stop-color="#0a84ff"/>
+        </linearGradient>
+      </defs>
+      <rect width="28" height="28" rx="7" fill="url(#logoGrad)"/>
+      <path d="M8 14 L14 8 L20 14 L14 20 Z" fill="rgba(0,0,0,0.3)" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>
+      <circle cx="14" cy="14" r="2.5" fill="#fff"/>
+    </svg>
+    <h1>EdgeDrive3D</h1>
+    <span class="header-badge">3D PERCEPTION</span>
+  </div>
+  <div class="header-status">
+    <div class="status-indicator">
+      <div class="status-dot"></div>
+      <span>System Active</span>
+    </div>
+    <div class="status-indicator">
+      <span style="color: var(--vehicle-cyan);">Jetson Nano</span>
+    </div>
+    <div class="status-indicator" id="clock" style="font-variant-numeric: tabular-nums;">
+      00:00:00
+    </div>
+  </div>
+</div>
+
+<!-- Compass Widget -->
+<div class="compass-widget" id="compassWidget">
+  <div class="compass-direction" id="compassDir">N</div>
+  <div class="compass-strip">
+    <div class="compass-marker"></div>
+    <canvas id="compassCanvas" width="200" height="24"></canvas>
+  </div>
+  <div class="compass-bearing" id="compassBearing">000°</div>
+</div>
+
+<!-- HUD: Top Left - Speed & Status -->
+<div class="hud-overlay hud-top-left">
+  <div class="speed-display">
+    <div class="speed-value" id="speedValue">0</div>
+    <div class="speed-unit">km/h</div>
+    <div class="gear-indicator">
+      <div class="gear-item">R</div>
+      <div class="gear-item">N</div>
+      <div class="gear-item active">D</div>
+    </div>
+  </div>
+  <div class="status-cards">
+    <div class="status-card">
+      <div class="status-card-icon" style="background:rgba(90,200,250,0.1);">
+        <span style="color:var(--vehicle-cyan);">◎</span>
+      </div>
+      <div class="status-card-info">
+        <div class="status-card-label">Objects</div>
+        <div class="status-card-value" style="color:var(--vehicle-cyan);" id="hudObjects">0</div>
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="status-card-icon" style="background:rgba(255,159,10,0.1);">
+        <span style="color:var(--vehicle-amber);">⟐</span>
+      </div>
+      <div class="status-card-info">
+        <div class="status-card-label">Nearest</div>
+        <div class="status-card-value" style="color:var(--vehicle-amber);" id="hudNearest">--</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HUD: Top Right - Detection Panel -->
+<div class="hud-overlay hud-top-right">
+  <div class="detection-panel">
+    <div class="detection-panel-header">
+      <div class="detection-panel-title">Detections</div>
+      <div class="detection-count" id="detectionCount">0</div>
+    </div>
+    <div class="detection-list" id="detectionList">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+  <div class="sign-display">
+    <div class="sign-display-title">Traffic Signs</div>
+    <div class="sign-row" id="signRow">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- HUD: Bottom Left - Mini BEV -->
+<div class="hud-overlay hud-bottom-left">
+  <div class="mini-bev">
+    <div class="mini-bev-header">
+      <span>BEV MAP</span>
+      <span style="color:var(--ego-green);">● LIVE</span>
+    </div>
+    <canvas id="miniBevCanvas" width="440" height="440"></canvas>
+  </div>
+</div>
+
+<!-- HUD: Bottom Right - System Stats -->
+<div class="hud-overlay hud-bottom-right">
+  <div class="system-stats">
+    <div class="system-stats-title">System</div>
+    <div class="stat-row">
+      <span class="stat-label">FPS</span>
+      <span class="stat-value" style="color:var(--ego-green);" id="statFps">0</span>
+    </div>
+    <div class="stat-bar">
+      <div class="stat-bar-fill" id="fpsBar" style="background:var(--ego-green);width:80%"></div>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">GPU</span>
+      <span class="stat-value" style="color:var(--hazard-orange);" id="statGpu">0%</span>
+    </div>
+    <div class="stat-bar">
+      <div class="stat-bar-fill" id="gpuBar" style="background:var(--hazard-orange);width:65%"></div>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Temp</span>
+      <span class="stat-value" style="color:var(--vehicle-amber);" id="statTemp">0°C</span>
+    </div>
+    <div class="stat-bar">
+      <div class="stat-bar-fill" id="tempBar" style="background:var(--vehicle-amber);width:55%"></div>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Memory</span>
+      <span class="stat-value" style="color:var(--vehicle-cyan);" id="statMem">0%</span>
+    </div>
+    <div class="stat-bar">
+      <div class="stat-bar-fill" id="memBar" style="background:var(--vehicle-cyan);width:70%"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HUD: Bottom Center - Warnings -->
+<div class="hud-overlay hud-bottom" style="bottom:70px;">
+  <div class="warning-bar" id="warningBar">
+    <!-- Populated by JS -->
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="legend-overlay">
+  <div class="legend-item-3d"><div class="legend-dot" style="background:var(--ego-green);"></div>Ego</div>
+  <div class="legend-item-3d"><div class="legend-dot" style="background:var(--vehicle-blue);"></div>Cars</div>
+  <div class="legend-item-3d"><div class="legend-dot" style="background:var(--vehicle-amber);"></div>Auto/Bus</div>
+  <div class="legend-item-3d"><div class="legend-dot" style="background:var(--vehicle-magenta);"></div>Motorcycle</div>
+  <div class="legend-item-3d"><div class="legend-dot" style="background:var(--pedestrian-yellow);"></div>Pedestrians</div>
+  <div class="legend-item-3d"><div class="legend-dot" style="background:var(--animal-purple);"></div>Animals</div>
+  <div class="legend-item-3d"><div class="legend-dot" style="background:var(--hazard-orange);"></div>Hazards</div>
+</div>
+
+<!-- View Controls -->
+<div class="view-controls">
+  <div class="view-btn active" id="viewFollow" title="Follow Camera" onclick="setView('follow')">👁</div>
+  <div class="view-btn" id="viewTop" title="Top Down" onclick="setView('top')">⬆</div>
+  <div class="view-btn" id="viewFree" title="Free Camera" onclick="setView('free')">🔄</div>
+  <div class="view-btn" id="viewFirst" title="First Person" onclick="setView('first')">🚗</div>
+  <div class="view-btn" title="Toggle Night/Day" onclick="toggleDayNight()">🌙</div>
+  <div class="view-btn" title="Toggle Rain" onclick="toggleWeather()">🌧</div>
+</div>
+
+<!-- Tooltip -->
+<div class="tooltip-3d" id="tooltip3d">
+  <div class="tooltip-3d-title" id="tooltipTitle"></div>
+  <div class="tooltip-3d-info" id="tooltipInfo"></div>
+</div>
+
+<!-- Three.js and main script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================================================
+// PART 1: Core Setup, Scene, Camera, Renderer
+// ============================================================
+
+// Global state
+const STATE = {
+  speed: 35,
+  objects: [],
+  detections: [],
+  cameraMode: 'follow',
+  isNight: true,
+  isRaining: false,
+  bearing: 0,
+  time: 0,
+  egoPosition: new THREE.Vector3(0, 0, 0),
+  egoRotation: 0,
+  mouseX: 0,
+  mouseY: 0,
+  selectedObject: null,
+  loadProgress: 0
+};
+
+// Color constants matching CSS
+const COLORS = {
+  vehicleBlue: 0x0a84ff,
+  vehicleCyan: 0x5ac8fa,
+  vehicleAmber: 0xff9f0a,
+  vehicleMagenta: 0xff375f,
+  pedestrianYellow: 0xffd60a,
+  animalPurple: 0xbf5af2,
+  hazardOrange: 0xff6723,
+  egoGreen: 0x30d158,
+  signRed: 0xff453a,
+  roadGray: 0x3a3a4a,
+  roadDark: 0x2a2a38,
+  roadMarking: 0xe8e8ed,
+  ground: 0x1a1a28,
+  buildingDark: 0x16161f,
+  buildingMed: 0x1e1e2a,
+  buildingLight: 0x252535,
+  sky: 0x0a0a1a,
+  ambient: 0x080818
+};
+
+// ---- Three.js Setup ----
+const canvas = document.getElementById('canvas3d');
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+  alpha: false,
+  powerPreference: 'high-performance'
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.8;
+renderer.outputEncoding = THREE.sRGBEncoding;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(COLORS.ambient, 0.008);
+scene.background = new THREE.Color(COLORS.sky);
+
+// Camera
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+camera.position.set(0, 25, 45);
+camera.lookAt(0, 0, 0);
+
+// Camera targets for smooth transitions
+const cameraTarget = {
+  position: new THREE.Vector3(0, 25, 45),
+  lookAt: new THREE.Vector3(0, 0, 0)
+};
+
+// ---- Lighting ----
+// Ambient
+const ambientLight = new THREE.AmbientLight(0x1a1a3a, 0.4);
+scene.add(ambientLight);
+
+// Hemisphere light
+const hemiLight = new THREE.HemisphereLight(0x1a1a3a, 0x0a0a15, 0.3);
+scene.add(hemiLight);
+
+// Directional light (moon/sun)
+const dirLight = new THREE.DirectionalLight(0x4466aa, 0.5);
+dirLight.position.set(-50, 80, -30);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
+dirLight.shadow.camera.near = 0.5;
+dirLight.shadow.camera.far = 200;
+dirLight.shadow.camera.left = -100;
+dirLight.shadow.camera.right = 100;
+dirLight.shadow.camera.top = 100;
+dirLight.shadow.camera.bottom = -100;
+dirLight.shadow.bias = -0.001;
+scene.add(dirLight);
+
+// Street lights group
+const streetLights = [];
+
+// ============================================================
+// UTILITY FUNCTIONS
+// ============================================================
+
+function createGlowMaterial(color, intensity = 1) {
+  return new THREE.MeshBasicMaterial({
+    color: color,
+    transparent: true,
+    opacity: 0.8 * intensity
+  });
+}
+
+function createGlassMaterial() {
+  return new THREE.MeshPhongMaterial({
+    color: 0x88ccff,
+    transparent: true,
+    opacity: 0.3,
+    shininess: 100,
+    specular: 0x88ccff
+  });
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function lerpVec3(v1, v2, t) {
+  return new THREE.Vector3(
+    lerp(v1.x, v2.x, t),
+    lerp(v1.y, v2.y, t),
+    lerp(v1.z, v2.z, t)
+  );
+}
+
+function randomRange(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+function hexToThree(hex) {
+  return new THREE.Color(hex);
+}
+
+// Progress update
+function updateLoading(progress) {
+  STATE.loadProgress = progress;
+  document.getElementById('loadingBarFill').style.width = progress + '%';
+}
+
+// ============================================================
+// GROUND & TERRAIN
+// ============================================================
+
+function createGround() {
+  // Main ground plane
+  const groundGeo = new THREE.PlaneGeometry(600, 600, 1, 1);
+  const groundMat = new THREE.MeshLambertMaterial({
+    color: COLORS.ground,
+    side: THREE.FrontSide
+  });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.1;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // Sidewalk areas (left and right of main road)
+  const sidewalkMat = new THREE.MeshLambertMaterial({ color: 0x222230 });
+
+  // Left sidewalk
+  const swLeft = new THREE.Mesh(new THREE.BoxGeometry(80, 0.15, 600), sidewalkMat);
+  swLeft.position.set(-52, 0.05, 0);
+  swLeft.receiveShadow = true;
+  scene.add(swLeft);
+
+  // Right sidewalk
+  const swRight = new THREE.Mesh(new THREE.BoxGeometry(80, 0.15, 600), sidewalkMat);
+  swRight.position.set(52, 0.05, 0);
+  swRight.receiveShadow = true;
+  scene.add(swRight);
+
+  // Grass/dirt patches
+  const grassMat = new THREE.MeshLambertMaterial({ color: 0x1a2a1a });
+  for (let i = 0; i < 20; i++) {
+    const side = Math.random() > 0.5 ? 1 : -1;
+    const patch = new THREE.Mesh(
+      new THREE.PlaneGeometry(randomRange(5, 15), randomRange(5, 15)),
+      grassMat
+    );
+    patch.rotation.x = -Math.PI / 2;
+    patch.position.set(
+      side * randomRange(50, 120),
+      0.01,
+      randomRange(-200, 200)
+    );
+    scene.add(patch);
+  }
+}
+
+// ============================================================
+// ROAD SYSTEM
+// ============================================================
+
+function createRoads() {
+  const roadMat = new THREE.MeshLambertMaterial({ color: COLORS.roadDark });
+  const markingMat = new THREE.MeshBasicMaterial({ color: COLORS.roadMarking, transparent: true, opacity: 0.7 });
+  const yellowMat = new THREE.MeshBasicMaterial({ color: 0xffd60a, transparent: true, opacity: 0.5 });
+
+  // Main road (running along Z axis)
+  const mainRoad = new THREE.Mesh(new THREE.BoxGeometry(24, 0.05, 600), roadMat);
+  mainRoad.position.set(0, 0.02, 0);
+  mainRoad.receiveShadow = true;
+  scene.add(mainRoad);
+
+  // Road edges (white lines)
+  const edgeGeo = new THREE.BoxGeometry(0.3, 0.06, 600);
+  const leftEdge = new THREE.Mesh(edgeGeo, markingMat);
+  leftEdge.position.set(-12, 0.06, 0);
+  scene.add(leftEdge);
+
+  const rightEdge = new THREE.Mesh(edgeGeo, markingMat);
+  rightEdge.position.set(12, 0.06, 0);
+  scene.add(rightEdge);
+
+  // Center dashed line (yellow)
+  for (let z = -300; z < 300; z += 6) {
+    const dash = new THREE.Mesh(
+      new THREE.BoxGeometry(0.2, 0.06, 3),
+      yellowMat
+    );
+    dash.position.set(0, 0.06, z);
+    scene.add(dash);
+  }
+
+  // Lane markings (white dashed)
+  for (let z = -300; z < 300; z += 8) {
+    // Left lane
+    const dashL = new THREE.Mesh(
+      new THREE.BoxGeometry(0.15, 0.06, 4),
+      new THREE.MeshBasicMaterial({ color: 0xe8e8ed, transparent: true, opacity: 0.4 })
+    );
+    dashL.position.set(-6, 0.06, z);
+    scene.add(dashL);
+
+    // Right lane
+    const dashR = dashL.clone();
+    dashR.position.set(6, 0.06, z);
+    scene.add(dashR);
+  }
+
+  // Cross road
+  const crossRoad = new THREE.Mesh(new THREE.BoxGeometry(600, 0.05, 18), roadMat);
+  crossRoad.position.set(0, 0.02, -40);
+  crossRoad.receiveShadow = true;
+  scene.add(crossRoad);
+
+  // Cross road markings
+  const crossEdge1 = new THREE.Mesh(new THREE.BoxGeometry(600, 0.06, 0.3), markingMat);
+  crossEdge1.position.set(0, 0.06, -31);
+  scene.add(crossEdge1);
+  const crossEdge2 = new THREE.Mesh(new THREE.BoxGeometry(600, 0.06, 0.3), markingMat);
+  crossEdge2.position.set(0, 0.06, -49);
+  scene.add(crossEdge2);
+
+  // Cross road center line
+  for (let x = -300; x < -14; x += 6) {
+    const cdash = new THREE.Mesh(new THREE.BoxGeometry(3, 0.06, 0.2), yellowMat);
+    cdash.position.set(x, 0.06, -40);
+    scene.add(cdash);
+  }
+  for (let x = 14; x < 300; x += 6) {
+    const cdash = new THREE.Mesh(new THREE.BoxGeometry(3, 0.06, 0.2), yellowMat);
+    cdash.position.set(x, 0.06, -40);
+    scene.add(cdash);
+  }
+
+  // Zebra crossing
+  createZebraCrossing(0, -30);
+
+  // Intersection box
+  const intersectionGeo = new THREE.BoxGeometry(24, 0.055, 18);
+  const intersectionMat = new THREE.MeshLambertMaterial({ color: 0x353545 });
+  const intersection = new THREE.Mesh(intersectionGeo, intersectionMat);
+  intersection.position.set(0, 0.025, -40);
+  intersection.receiveShadow = true;
+  scene.add(intersection);
+}
+
+function createZebraCrossing(x, z) {
+  const stripeMat = new THREE.MeshBasicMaterial({ color: 0xe8e8ed, transparent: true, opacity: 0.6 });
+  for (let i = -10; i <= 10; i += 2.5) {
+    const stripe = new THREE.Mesh(
+      new THREE.BoxGeometry(1.5, 0.065, 0.6),
+      stripeMat
+    );
+    stripe.position.set(x + i, 0.06, z);
+    scene.add(stripe);
+  }
+}
+
+// ============================================================
+// BUILDINGS
+// ============================================================
+
+function createBuildings() {
+  const buildingColors = [
+    COLORS.buildingDark,
+    COLORS.buildingMed,
+    COLORS.buildingLight,
+    0x1c1c2c,
+    0x202030,
+    0x181828
+  ];
+
+  const windowMat = new THREE.MeshBasicMaterial({
+    color: 0x334455,
+    transparent: true,
+    opacity: 0.6
+  });
+  const windowLitMat = new THREE.MeshBasicMaterial({
+    color: 0xffcc66,
+    transparent: true,
+    opacity: 0.7
+  });
+
+  // Building placement zones (avoiding roads)
+  const zones = [
+    { xMin: -140, xMax: -20, zMin: -250, zMax: 250 },   // Far left
+    { xMin: 20, xMax: 140, zMin: -250, zMax: 250 },      // Far right
+    { xMin: -250, xMax: -95, zMin: -250, zMax: 250 },    // Very far left
+    { xMin: 95, xMax: 250, zMin: -250, zMax: 250 },      // Very far right
+  ];
+
+  zones.forEach(zone => {
+    const numBuildings = Math.floor(randomRange(6, 14));
+    for (let i = 0; i < numBuildings; i++) {
+      const width = randomRange(8, 25);
+      const depth = randomRange(8, 20);
+      const height = randomRange(6, 40);
+      const x = randomRange(zone.xMin, zone.xMax);
+      const z = randomRange(zone.zMin, zone.zMax);
+
+      // Avoid intersection area
+      if (Math.abs(x) < 16 && Math.abs(z + 40) < 14) continue;
+
+      const colorIdx = Math.floor(Math.random() * buildingColors.length);
+      const buildingMat = new THREE.MeshLambertMaterial({
+        color: buildingColors[colorIdx]
+      });
+
+      const building = new THREE.Mesh(
+        new THREE.BoxGeometry(width, height, depth),
+        buildingMat
+      );
+      building.position.set(x, height / 2, z);
+      building.castShadow = true;
+      building.receiveShadow = true;
+      scene.add(building);
+
+      // Add windows
+      addWindowsToBuilding(building, width, height, depth, windowMat, windowLitMat);
+
+      // Roof details
+      if (Math.random() > 0.5) {
+        const roofDetail = new THREE.Mesh(
+          new THREE.BoxGeometry(width * 0.6, 1, depth * 0.6),
+          new THREE.MeshLambertMaterial({ color: 0x252535 })
+        );
+        roofDetail.position.set(x, height + 0.5, z);
+        scene.add(roofDetail);
+      }
+
+      // AC units on some buildings
+      if (Math.random() > 0.6 && height > 10) {
+        const acUnit = new THREE.Mesh(
+          new THREE.BoxGeometry(1.5, 1, 1),
+          new THREE.MeshLambertMaterial({ color: 0x888888 })
+        );
+        const side = Math.random() > 0.5 ? 1 : -1;
+        acUnit.position.set(
+          x + side * (width / 2 + 0.5),
+          height * randomRange(0.3, 0.8),
+          z
+        );
+        scene.add(acUnit);
+      }
+    }
+  });
+}
+
+function addWindowsToBuilding(building, width, height, depth, windowMat, windowLitMat) {
+  const windowSize = 1.2;
+  const windowGap = 2.5;
+  const pos = building.position;
+
+  // Front and back faces
+  for (let face = 0; face < 2; face++) {
+    const faceDir = face === 0 ? 1 : -1;
+    const numCols = Math.floor(width / windowGap) - 1;
+    const numRows = Math.floor(height / windowGap) - 1;
+
+    for (let row = 0; row < numRows; row++) {
+      for (let col = 0; col < numCols; col++) {
+        const isLit = Math.random() > 0.6;
+        const mat = isLit ? windowLitMat : windowMat;
+        const win = new THREE.Mesh(
+          new THREE.PlaneGeometry(windowSize, windowSize),
+          mat
+        );
+        win.position.set(
+          pos.x - width / 2 + windowGap + col * windowGap,
+          pos.y - height / 2 + windowGap + row * windowGap,
+          pos.z + faceDir * (depth / 2 + 0.01)
+        );
+        if (face === 1) win.rotation.y = Math.PI;
+        scene.add(win);
+      }
+    }
+  }
+
+  // Side faces
+  for (let face = 0; face < 2; face++) {
+    const faceDir = face === 0 ? 1 : -1;
+    const numCols = Math.floor(depth / windowGap) - 1;
+    const numRows = Math.floor(height / windowGap) - 1;
+
+    for (let row = 0; row < numRows; row++) {
+      for (let col = 0; col < numCols; col++) {
+        const isLit = Math.random() > 0.65;
+        const mat = isLit ? windowLitMat : windowMat;
+        const win = new THREE.Mesh(
+          new THREE.PlaneGeometry(windowSize, windowSize),
+          mat
+        );
+        win.position.set(
+          pos.x + faceDir * (width / 2 + 0.01),
+          pos.y - height / 2 + windowGap + row * windowGap,
+          pos.z - depth / 2 + windowGap + col * windowGap
+        );
+        win.rotation.y = faceDir * Math.PI / 2;
+        scene.add(win);
+      }
+    }
+  }
+}
+
+// ============================================================
+// STREET FURNITURE
+// ============================================================
+
+function createStreetLights() {
+  const poleMat = new THREE.MeshLambertMaterial({ color: 0x555566 });
+  const lightMat = new THREE.MeshBasicMaterial({ color: 0xffeedd, transparent: true, opacity: 0.9 });
+
+  for (let z = -250; z <= 250; z += 30) {
+    for (let side = -1; side <= 1; side += 2) {
+      const poleX = side * 14;
+
+      // Pole
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 8, 8), poleMat);
+      pole.position.set(poleX, 4, z);
+      pole.castShadow = true;
+      scene.add(pole);
+
+      // Arm
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(3 * -side, 0.15, 0.15), poleMat);
+      arm.position.set(poleX - side * 1.5, 8, z);
+      scene.add(arm);
+
+      // Light fixture
+      const fixture = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.3, 0.8), new THREE.MeshLambertMaterial({ color: 0x444455 }));
+      fixture.position.set(poleX - side * 3, 7.85, z);
+      scene.add(fixture);
+
+      // Light bulb (emissive)
+      const bulb = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.2, 0.6),
+        lightMat
+      );
+      bulb.position.set(poleX - side * 3, 7.68, z);
+      bulb.rotation.x = -Math.PI / 2;
+      scene.add(bulb);
+
+      // Point light
+      const pointLight = new THREE.PointLight(0xffeedd, 0.6, 25, 2);
+      pointLight.position.set(poleX - side * 3, 7.5, z);
+      pointLight.castShadow = false;
+      scene.add(pointLight);
+
+      streetLights.push({ light: pointLight, z: z, x: poleX });
+
+      // Ground glow circle
+      const glowGeo = new THREE.CircleGeometry(4, 16);
+      const glowMat = new THREE.MeshBasicMaterial({
+        color: 0xffeedd,
+        transparent: true,
+        opacity: 0.05,
+        side: THREE.DoubleSide
+      });
+      const glow = new THREE.Mesh(glowGeo, glowMat);
+      glow.rotation.x = -Math.PI / 2;
+      glow.position.set(poleX - side * 3, 0.05, z);
+      scene.add(glow);
+    }
+  }
+}
+
+function createTrafficLights() {
+  // Traffic light at intersection
+  const positions = [
+    { x: -14, z: -30, rotY: 0 },
+    { x: 14, z: -50, rotY: Math.PI },
+    { x: -14, z: -50, rotY: Math.PI / 2 },
+    { x: 14, z: -30, rotY: -Math.PI / 2 },
+  ];
+
+  positions.forEach(pos => {
+    createTrafficLight(pos.x, pos.z, pos.rotY);
+  });
+}
+
+function createTrafficLight(x, z, rotY) {
+  const group = new THREE.Group();
+
+  // Pole
+  const pole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.15, 0.2, 6, 8),
+    new THREE.MeshLambertMaterial({ color: 0x444455 })
+  );
+  pole.position.y = 3;
+  group.add(pole);
+
+  // Housing
+  const housing = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 3, 0.8),
+    new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
+  );
+  housing.position.y = 7;
+  group.add(housing);
+
+  // Lights
+  const colors = [0xff453a, 0xff9f0a, 0x30d158];
+  const activeLight = Math.floor(Math.random() * 3);
+
+  colors.forEach((color, i) => {
+    const lightMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.25, 12, 12),
+      new THREE.MeshBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: i === activeLight ? 0.9 : 0.2
+      })
+    );
+    lightMesh.position.set(0, 8 - i, 0.45);
+    group.add(lightMesh);
+
+    // Glow for active light
+    if (i === activeLight) {
+      const glowLight = new THREE.PointLight(color, 0.5, 10, 2);
+      glowLight.position.set(0, 8 - i, 0.5);
+      group.add(glowLight);
+    }
+  });
+
+  group.position.set(x, 0, z);
+  group.rotation.y = rotY;
+  scene.add(group);
+}
+
+function createTrafficSigns() {
+  // Stop sign at intersection
+  createStopSign(-14, -28);
+
+  // Speed limit signs
+  createSpeedLimitSign(14, 30, 40);
+  createSpeedLimitSign(-14, -80, 60);
+
+  // Various signs along road
+  createWarningSign(14, 60, 'school');
+  createWarningSign(-14, -100, 'bump');
+}
+
+function createStopSign(x, z) {
+  const group = new THREE.Group();
+
+  // Pole
+  const pole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.1, 3.5, 6),
+    new THREE.MeshLambertMaterial({ color: 0x666666 })
+  );
+  pole.position.y = 1.75;
+  group.add(pole);
+
+  // Sign (octagon approximated as cylinder)
+  const sign = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.7, 0.7, 0.05, 8),
+    new THREE.MeshBasicMaterial({ color: 0xff453a })
+  );
+  sign.position.y = 3.8;
+  sign.rotation.x = Math.PI / 2;
+  group.add(sign);
+
+  // White border
+  const border = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.75, 0.75, 0.04, 8),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 })
+  );
+  border.position.y = 3.8;
+  border.position.z = -0.01;
+  border.rotation.x = Math.PI / 2;
+  group.add(border);
+
+  group.position.set(x, 0, z);
+  scene.add(group);
+}
+
+function createSpeedLimitSign(x, z, speed) {
+  const group = new THREE.Group();
+
+  const pole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.1, 3, 6),
+    new THREE.MeshLambertMaterial({ color: 0x666666 })
+  );
+  pole.position.y = 1.5;
+  group.add(pole);
+
+  // Round sign
+  const sign = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.6, 0.6, 0.04, 16),
+    new THREE.MeshBasicMaterial({ color: 0xffffff })
+  );
+  sign.position.y = 3.3;
+  sign.rotation.x = Math.PI / 2;
+  group.add(sign);
+
+  // Red border ring
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(0.55, 0.06, 8, 16),
+    new THREE.MeshBasicMaterial({ color: 0xff453a })
+  );
+  ring.position.y = 3.3;
+  ring.position.z = 0.02;
+  ring.rotation.x = Math.PI / 2;
+  group.add(ring);
+
+  group.position.set(x, 0, z);
+  scene.add(group);
+}
+
+function createWarningSign(x, z, type) {
+  const group = new THREE.Group();
+
+  const pole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.1, 3, 6),
+    new THREE.MeshLambertMaterial({ color: 0x666666 })
+  );
+  pole.position.y = 1.5;
+  group.add(pole);
+
+  // Diamond/triangle shape (using box rotated)
+  const sign = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 0.04),
+    new THREE.MeshBasicMaterial({ color: 0xffd60a })
+  );
+  sign.position.y = 3.5;
+  sign.rotation.z = Math.PI / 4;
+  group.add(sign);
+
+  group.position.set(x, 0, z);
+  scene.add(group);
+}
+
+// ============================================================
+// ROAD HAZARDS
+// ============================================================
+
+function createRoadHazards() {
+  // Potholes
+  createPothole(-3, 20);
+  createPothole(4, 80);
+
+  // Speed breaker
+  createSpeedBreaker(0, -70);
+  createSpeedBreaker(0, 50);
+
+  // Construction cones
+  createConstructionZone(8, 100);
+}
+
+function createPothole(x, z) {
+  const pothole = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.2, 1, 0.15, 12),
+    new THREE.MeshLambertMaterial({ color: 0x0a0a0f })
+  );
+  pothole.position.set(x, -0.05, z);
+  pothole.receiveShadow = true;
+  scene.add(pothole);
+
+  // Warning ring
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(1.3, 0.1, 8, 16),
+    new THREE.MeshBasicMaterial({ color: 0xff6723, transparent: true, opacity: 0.4 })
+  );
+  ring.position.set(x, 0.05, z);
+  ring.rotation.x = -Math.PI / 2;
+  scene.add(ring);
+
+  STATE.objects.push({
+    type: 'pothole',
+    position: new THREE.Vector3(x, 0, z),
+    color: '#ff6723',
+    label: 'Pothole',
+    mesh: pothole
+  });
+}
+
+function createSpeedBreaker(x, z) {
+  const bump = new THREE.Mesh(
+    new THREE.BoxGeometry(24, 0.2, 1.5),
+    new THREE.MeshLambertMaterial({ color: 0x444444 })
+  );
+  bump.position.set(x, 0.1, z);
+  bump.receiveShadow = true;
+  scene.add(bump);
+
+  // Yellow stripes
+  const stripeMat = new THREE.MeshBasicMaterial({ color: 0xffd60a, transparent: true, opacity: 0.7 });
+  for (let i = -10; i <= 10; i += 2) {
+    const stripe = new THREE.Mesh(
+      new THREE.BoxGeometry(0.8, 0.22, 1.6),
+      stripeMat
+    );
+    stripe.position.set(x + i, 0.11, z);
+    scene.add(stripe);
+  }
+
+  STATE.objects.push({
+    type: 'speedbreaker',
+    position: new THREE.Vector3(x, 0, z),
+    color: '#ff6723',
+    label: 'Speed Breaker'
+  });
+}
+
+function createConstructionZone(x, z) {
+  // Cones
+  for (let i = 0; i < 5; i++) {
+    createCone(x + i * 3, z);
+  }
+
+  // Barrier
+  const barrierGroup = new THREE.Group();
+  const barrierMat = new THREE.MeshLambertMaterial({ color: 0xff6723 });
+  const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 });
+
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(16, 0.8, 0.3), barrierMat);
+  bar.position.y = 2.5;
+  barrierGroup.add(bar);
+
+  // White stripes on barrier
+  for (let i = -6; i <= 6; i += 3) {
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.82, 0.32), whiteMat);
+    stripe.position.set(i, 2.5, 0);
+    barrierGroup.add(stripe);
+  }
+
+  // Legs
+  const legMat = new THREE.MeshLambertMaterial({ color: 0x666666 });
+  const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 2.5, 0.3), legMat);
+  leg1.position.set(-7, 1.25, 0);
+  barrierGroup.add(leg1);
+  const leg2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 2.5, 0.3), legMat);
+  leg2.position.set(7, 1.25, 0);
+  barrierGroup.add(leg2);
+
+  barrierGroup.position.set(x + 6, 0, z + 3);
+  scene.add(barrierGroup);
+}
+
+function createCone(x, z) {
+  const coneGeo = new THREE.ConeGeometry(0.35, 1.2, 8);
+  const coneMat = new THREE.MeshLambertMaterial({ color: 0xff6723 });
+  const cone = new THREE.Mesh(coneGeo, coneMat);
+  cone.position.set(x, 0.6, z);
+  cone.castShadow = true;
+  scene.add(cone);
+
+  // White stripe
+  const stripe = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.28, 0.22, 0.15, 8),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 })
+  );
+  stripe.position.set(x, 0.5, z);
+  scene.add(stripe);
+
+  // Base
+  const base = new THREE.Mesh(
+    new THREE.BoxGeometry(0.9, 0.1, 0.9),
+    new THREE.MeshLambertMaterial({ color: 0xff6723 })
+  );
+  base.position.set(x, 0.05, z);
+  scene.add(base);
+}
+
+// ============================================================
+// TREES & VEGETATION
+// ============================================================
+
+function createTrees() {
+  const trunkMat = new THREE.MeshLambertMaterial({ color: 0x3d2b1f });
+  const leafColors = [0x1a3a1a, 0x2a4a2a, 0x1d3d1d, 0x254025];
+
+  for (let z = -250; z <= 250; z += randomRange(15, 30)) {
+    for (let side = -1; side <= 1; side += 2) {
+      if (Math.random() > 0.6) continue;
+
+      const x = side * randomRange(18, 45);
+      // Avoid intersection
+      if (Math.abs(z + 40) < 15 && Math.abs(x) < 20) continue;
+
+      const trunkHeight = randomRange(3, 6);
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.2, 0.35, trunkHeight, 6),
+        trunkMat
+      );
+      trunk.position.set(x, trunkHeight / 2, z);
+      trunk.castShadow = true;
+      scene.add(trunk);
+
+      // Canopy (multiple spheres)
+      const leafMat = new THREE.MeshLambertMaterial({
+        color: leafColors[Math.floor(Math.random() * leafColors.length)]
+      });
+
+      const numSpheres = Math.floor(randomRange(2, 5));
+      for (let i = 0; i < numSpheres; i++) {
+        const radius = randomRange(1.5, 3);
+        const leaf = new THREE.Mesh(
+          new THREE.SphereGeometry(radius, 8, 6),
+          leafMat
+        );
+        leaf.position.set(
+          x + randomRange(-1.5, 1.5),
+          trunkHeight + randomRange(0.5, 2.5),
+          z + randomRange(-1.5, 1.5)
+        );
+        leaf.castShadow = true;
+        scene.add(leaf);
+      }
+    }
+  }
+}
+
+updateLoading(30);
+
+// ============================================================
+// INITIALIZATION (call build functions)
+// ============================================================
+
+createGround();
+updateLoading(40);
+
+createRoads();
+updateLoading(50);
+
+createBuildings();
+updateLoading(65);
+
+createStreetLights();
+createTrafficLights();
+createTrafficSigns();
+updateLoading(75);
+
+createRoadHazards();
+createTrees();
+updateLoading(85);
+</script>
+</body>
+</html>

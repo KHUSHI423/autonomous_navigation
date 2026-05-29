@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADAS Navigation Dashboard</title>
+    
+    <!-- MapLibre GL JS -->
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Main Dashboard Container -->
+    <div class="dashboard-container">
+        
+        <!-- Header Bar -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <div class="logo">
+                    <svg class="logo-icon" viewBox="0 0 40 40" fill="none">
+                        <circle cx="20" cy="20" r="18" stroke="currentColor" stroke-width="2"/>
+                        <path d="M20 8 L20 20 L28 28" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="20" cy="20" r="3" fill="currentColor"/>
+                    </svg>
+                    <span>ADAS NAV</span>
+                </div>
+            </div>
+            <div class="header-center">
+                <div class="status-indicator" id="connectionStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">CONNECTING</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="time-display" id="currentTime">--:--:--</div>
+                <div class="date-display" id="currentDate">----/--/--</div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            
+            <!-- Left Panel - GPS Data -->
+            <aside class="side-panel left-panel">
+                <div class="panel-header">
+                    <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 2 L12 12 L18 18"/>
+                    </svg>
+                    <span>GPS DATA</span>
+                </div>
+                
+                <div class="data-grid">
+                    <div class="data-card">
+                        <div class="data-label">LATITUDE</div>
+                        <div class="data-value" id="latitude">--.------</div>
+                        <div class="data-unit">°</div>
+                    </div>
+                    <div class="data-card">
+                        <div class="data-label">LONGITUDE</div>
+                        <div class="data-value" id="longitude">--.------</div>
+                        <div class="data-unit">°</div>
+                    </div>
+                    <div class="data-card">
+                        <div class="data-label">ALTITUDE</div>
+                        <div class="data-value" id="altitude">---</div>
+                        <div class="data-unit">m</div>
+                    </div>
+                    <div class="data-card">
+                        <div class="data-label">HEADING</div>
+                        <div class="data-value" id="heading">---</div>
+                        <div class="data-unit">°</div>
+                        <div class="compass-ring" id="compassRing">
+                            <div class="compass-arrow" id="compassArrow"></div>
+                        </div>
+                    </div>
+                    <div class="data-card">
+                        <div class="data-label">SATELLITES</div>
+                        <div class="data-value" id="satellites">--</div>
+                        <div class="satellite-bars" id="satelliteBars"></div>
+                    </div>
+                    <div class="data-card">
+                        <div class="data-label">ACCURACY</div>
+                        <div class="data-value" id="accuracy">--.-</div>
+                        <div class="data-unit">m</div>
+                    </div>
+                </div>
+
+                <!-- Connection Status -->
+                <div class="control-section">
+                    <div class="control-header">GPS SOURCE</div>
+                    <div class="status-info">
+                        <span class="status-label">STATUS:</span>
+                        <span class="status-value" id="gpsSourceStatus">DISCONNECTED</span>
+                    </div>
+                    <div class="connection-info">
+                        <span class="info-text">WiFi GPS via ESP32</span>
+                    </div>
+                    <div class="simulation-toggle">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="simulationMode">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-text">SIMULATION MODE</span>
+                        </label>
+                    </div>
+                </div>
+            </aside>
+            
+            <!-- Center - Map -->
+            <div class="map-container">
+                <div id="map"></div>
+                
+                <!-- Map Overlay - Speed -->
+                <div class="map-overlay speed-overlay">
+                    <div class="speed-value" id="speedValue">0</div>
+                    <div class="speed-unit">KM/H</div>
+                </div>
+                
+                <!-- Map Overlay - Coordinates -->
+                <div class="map-overlay coords-overlay">
+                    <div class="coord-row">
+                        <span class="coord-label">LAT:</span>
+                        <span class="coord-value" id="mapLat">--.------</span>
+                    </div>
+                    <div class="coord-row">
+                        <span class="coord-label">LON:</span>
+                        <span class="coord-value" id="mapLon">--.------</span>
+                    </div>
+                </div>
+                
+                <!-- Map Controls -->
+                <div class="map-controls">
+                    <button class="map-btn" id="btnZoomIn" title="Zoom In">+</button>
+                    <button class="map-btn" id="btnZoomOut" title="Zoom Out">−</button>
+                    <button class="map-btn" id="btnCenter" title="Center on Vehicle">⌖</button>
+                    <button class="map-btn" id="btnFullscreen" title="Fullscreen">⛶</button>
+                </div>
+            </div>
+            
+            <!-- Right Panel - Vehicle Info -->
+            <aside class="side-panel right-panel">
+                <div class="panel-header">
+                    <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                    <span>VEHICLE</span>
+                </div>
+                
+                <div class="vehicle-display">
+                    <!-- Speed Gauge -->
+                    <div class="gauge-container">
+                        <svg class="speed-gauge" viewBox="0 0 200 200">
+                            <defs>
+                                <linearGradient id="speedGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#00d4ff"/>
+                                    <stop offset="50%" style="stop-color:#00ff88"/>
+                                    <stop offset="100%" style="stop-color:#ffaa00"/>
+                                </linearGradient>
+                            </defs>
+                            <circle cx="100" cy="100" r="85" fill="none" stroke="#1a1a2e" stroke-width="20"/>
+                            <circle class="speed-arc" cx="100" cy="100" r="85" fill="none" stroke="url(#speedGradient)" 
+                                    stroke-width="20" stroke-linecap="round" 
+                                    stroke-dasharray="445" stroke-dashoffset="445"
+                                    transform="rotate(135 100 100)"/>
+                            <text class="gauge-value" x="100" y="95" text-anchor="middle" id="gaugeSpeed">0</text>
+                            <text class="gauge-unit" x="100" y="120" text-anchor="middle">KM/H</text>
+                        </svg>
+                    </div>
+                    
+                    <!-- Heading Display -->
+                    <div class="heading-display">
+                        <div class="heading-value" id="vehicleHeading">N</div>
+                        <div class="heading-label">DIRECTION</div>
+                    </div>
+                    
+                    <!-- Trip Info -->
+                    <div class="trip-info">
+                        <div class="trip-item">
+                            <span class="trip-label">TRIP TIME</span>
+                            <span class="trip-value" id="tripTime">00:00:00</span>
+                        </div>
+                        <div class="trip-item">
+                            <span class="trip-label">DISTANCE</span>
+                            <span class="trip-value" id="tripDistance">0.00 km</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Alert Panel -->
+                <div class="alert-panel" id="alertPanel">
+                    <div class="alert-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <span>ALERTS</span>
+                    </div>
+                    <div class="alert-list" id="alertList">
+                        <div class="alert-item info">
+                            <span>System Ready</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+        
+        <!-- Footer Bar -->
+        <footer class="dashboard-footer">
+            <div class="footer-left">
+                <span class="footer-label">MODE:</span>
+                <span class="mode-indicator active">NAVIGATION</span>
+            </div>
+            <div class="footer-center">
+                <div class="signal-strength" id="signalStrength">
+                    <span class="signal-label">GPS</span>
+                    <div class="signal-bars">
+                        <div class="signal-bar"></div>
+                        <div class="signal-bar"></div>
+                        <div class="signal-bar"></div>
+                        <div class="signal-bar"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-right">
+                <span class="version">v1.0.0</span>
+            </div>
+        </footer>
+    </div>
+    
+    <!-- Connection Modal - Removed (WiFi GPS) -->
+    
+    <!-- Custom Scripts -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

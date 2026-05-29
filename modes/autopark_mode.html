@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🅿 Auto-Park Mode - 3D Visualization</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/mode-3d.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body class="mode-page">
+    <div class="cyber-grid"></div>
+    <div class="particles" id="particles"></div>
+
+    <nav class="mode-nav">
+        <div class="nav-content">
+            <a href="index.html" class="back-btn">
+                <span class="back-arrow">←</span>
+                <span>Back to Hub</span>
+            </a>
+            <div class="mode-title">
+                <span class="mode-icon">🅿</span>
+                <h1>Auto-Park Mode</h1>
+            </div>
+            <div class="mode-status">
+                <span class="status-indicator live"></span>
+                <span>SEARCHING</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="mode-container">
+        <div class="viewport-3d" id="viewport3d"></div>
+
+        <div class="control-panel">
+            <div class="panel-section">
+                <h3>🅿 Parking Status</h3>
+                <div class="mission-display">
+                    <div class="mission-item">
+                        <span class="mission-label">Spot Detection</span>
+                        <span class="mission-value" id="spotDetection">Scanning...</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Distance to Spot</span>
+                        <span class="mission-value" id="distanceToGoal">15.3 m</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Maneuver Progress</span>
+                        <span class="mission-value" id="maneuverProgress">0%</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Parking Status</span>
+                        <span class="mission-value status-ok" id="parkingStatus">Ready</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>📊 Live Telemetry</h3>
+                <div class="telemetry-grid">
+                    <div class="telemetry-item">
+                        <span class="tele-label">Speed</span>
+                        <span class="tele-value" id="speedValue">0.8</span>
+                        <span class="tele-unit">m/s</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Battery</span>
+                        <span class="tele-value" id="batteryValue">90</span>
+                        <span class="tele-unit">%</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Ultrasonic F</span>
+                        <span class="tele-value" id="ultrasonicF">45.2</span>
+                        <span class="tele-unit">cm</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Ultrasonic R</span>
+                        <span class="tele-value" id="ultrasonicR">38.5</span>
+                        <span class="tele-unit">cm</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>🎮 Controls</h3>
+                <div class="button-grid">
+                    <button class="action-btn btn-primary" id="btnFindSpot">
+                        <span class="btn-icon">🔍</span>
+                        Find Parking Spot
+                    </button>
+                    <button class="action-btn btn-primary" id="btnStartParking">
+                        <span class="btn-icon">▶️</span>
+                        Start Parking
+                    </button>
+                    <button class="action-btn btn-danger" id="btnEmergencyStop">
+                        <span class="btn-icon">🛑</span>
+                        Emergency Stop
+                    </button>
+                    <button class="action-btn btn-success" id="btnExitSpot">
+                        <span class="btn-icon">↗️</span>
+                        Exit Spot
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>🎥 Top-Down View</h3>
+                <div class="camera-feed" id="cameraFeed">
+                    <div class="feed-placeholder">
+                        <span class="feed-icon">📹</span>
+                        <span class="feed-text">Bird's Eye View</span>
+                        <span class="feed-subtext">Simulated</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="modal" id="parkingModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-icon">✅</span>
+                <h2>Parked Successfully!</h2>
+            </div>
+            <div class="modal-body">
+                <div class="delivery-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">Spot Number</span>
+                        <span class="summary-value">A-12</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Time Taken</span>
+                        <span class="summary-value">45s</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Precision</span>
+                        <span class="summary-value">±2cm</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Battery Used</span>
+                        <span class="summary-value">3%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn btn-primary" onclick="closeModal()">Exit Parking</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/particles.js"></script>
+    <script src="js/autopark-mode-3d.js"></script>
+    <script src="js/mode-controls.js"></script>
+</body>
+</html>

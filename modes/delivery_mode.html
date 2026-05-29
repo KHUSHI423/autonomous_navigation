@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚚 Delivery Mode - 3D Visualization</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/mode-3d.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body class="mode-page">
+    <div class="cyber-grid"></div>
+    <div class="particles" id="particles"></div>
+
+    <!-- Navigation Header -->
+    <nav class="mode-nav">
+        <div class="nav-content">
+            <a href="index.html" class="back-btn">
+                <span class="back-arrow">←</span>
+                <span>Back to Hub</span>
+            </a>
+            <div class="mode-title">
+                <span class="mode-icon">🚚</span>
+                <h1>Delivery Mode</h1>
+            </div>
+            <div class="mode-status">
+                <span class="status-indicator live"></span>
+                <span>LIVE</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main 3D Container -->
+    <div class="mode-container">
+        <!-- 3D Viewport -->
+        <div class="viewport-3d" id="viewport3d">
+            <div class="viewport-overlay">
+                <div class="overlay-corner top-left"></div>
+                <div class="overlay-corner top-right"></div>
+                <div class="overlay-corner bottom-left"></div>
+                <div class="overlay-corner bottom-right"></div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <!-- Mode Info -->
+            <div class="panel-section">
+                <h3>🎯 Mission Status</h3>
+                <div class="mission-display">
+                    <div class="mission-item">
+                        <span class="mission-label">Current Objective</span>
+                        <span class="mission-value" id="currentObjective">Navigate to Waypoint</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Distance to Goal</span>
+                        <span class="mission-value" id="distanceToGoal">245.3 m</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">ETA</span>
+                        <span class="mission-value" id="eta">3m 15s</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Package Status</span>
+                        <span class="mission-value status-ok" id="packageStatus">Secure</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Telemetry -->
+            <div class="panel-section">
+                <h3>📊 Live Telemetry</h3>
+                <div class="telemetry-grid">
+                    <div class="telemetry-item">
+                        <span class="tele-label">Speed</span>
+                        <span class="tele-value" id="speedValue">2.4</span>
+                        <span class="tele-unit">m/s</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Battery</span>
+                        <span class="tele-value" id="batteryValue">87</span>
+                        <span class="tele-unit">%</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">GPS Signal</span>
+                        <span class="tele-value" id="gpsSignal">12</span>
+                        <span class="tele-unit">sats</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Ultrasonic</span>
+                        <span class="tele-value" id="ultrasonicValue">45.2</span>
+                        <span class="tele-unit">cm</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Obstacle Detection -->
+            <div class="panel-section">
+                <h3>👁️ Obstacle Detection</h3>
+                <div class="obstacle-display" id="obstacleDisplay">
+                    <div class="obstacle-item">
+                        <span class="obstacle-icon">🚗</span>
+                        <span class="obstacle-name">Vehicle</span>
+                        <span class="obstacle-dist">12.5m</span>
+                    </div>
+                    <div class="obstacle-item">
+                        <span class="obstacle-icon">🚶</span>
+                        <span class="obstacle-name">Person</span>
+                        <span class="obstacle-dist">8.3m</span>
+                    </div>
+                </div>
+                <div class="detection-viz" id="detectionViz">
+                    <canvas id="radarCanvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="panel-section">
+                <h3>🎮 Controls</h3>
+                <div class="button-grid">
+                    <button class="action-btn btn-primary" id="btnStartDelivery">
+                        <span class="btn-icon">▶️</span>
+                        Start Delivery
+                    </button>
+                    <button class="action-btn btn-warning" id="btnPause">
+                        <span class="btn-icon">⏸️</span>
+                        Pause
+                    </button>
+                    <button class="action-btn btn-danger" id="btnEmergencyStop">
+                        <span class="btn-icon">🛑</span>
+                        Emergency Stop
+                    </button>
+                    <button class="action-btn btn-success" id="btnCompleteDelivery">
+                        <span class="btn-icon">✅</span>
+                        Complete Delivery
+                    </button>
+                </div>
+            </div>
+
+            <!-- Camera Feed Placeholder -->
+            <div class="panel-section">
+                <h3>🎥 Live Camera Feed</h3>
+                <div class="camera-feed" id="cameraFeed">
+                    <div class="feed-placeholder">
+                        <span class="feed-icon">📹</span>
+                        <span class="feed-text">Waiting for video stream...</span>
+                        <span class="feed-subtext">Port: 5000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Modal for Delivery Complete -->
+    <div class="modal" id="deliveryModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-icon">🎉</span>
+                <h2>Delivery Complete!</h2>
+            </div>
+            <div class="modal-body">
+                <div class="delivery-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">Total Distance</span>
+                        <span class="summary-value">1.2 km</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Time Taken</span>
+                        <span class="summary-value">8m 32s</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Obstacles Avoided</span>
+                        <span class="summary-value">7</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Battery Used</span>
+                        <span class="summary-value">12%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn btn-primary" onclick="closeModal()">Start New Delivery</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/particles.js"></script>
+    <script src="js/delivery-mode-3d.js"></script>
+    <script src="js/mode-controls.js"></script>
+</body>
+</html>

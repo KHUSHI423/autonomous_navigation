@@ -1,0 +1,243 @@
+# Real-Time Video Visualization Configuration
+# Copy this file to config_realtime.yaml and customize as needed
+
+# Camera/Input Settings
+camera:
+  # Source options:
+  # - 0 (default webcam)
+  # - 1, 2, etc. (other webcams)
+  # - "path/to/video.mp4" (video file)
+  # - "rtsp://username:password@ip:port/stream" (RTSP stream)
+  # - "http://ip:port/video" (HTTP stream)
+  source: 0
+  
+  # Resolution
+  width: 1280
+  height: 720
+  
+  # Frame rate
+  fps: 30
+  
+  # Flip horizontally (for webcams)
+  flip_horizontal: false
+
+# Object Detection Settings
+detection:
+  # YOLO model options:
+  # - yolov8n.pt (nano - fastest)
+  # - yolov8s.pt (small - balanced)
+  # - yolov8m.pt (medium - accurate)
+  # - yolov8l.pt (large - very accurate)
+  # - yolov8x.pt (extra-large - most accurate)
+  model: yolov8n.pt
+  
+  # Confidence threshold (0.0 - 1.0)
+  confidence: 0.5
+  
+  # IoU threshold for NMS (0.0 - 1.0)
+  iou: 0.7
+  
+  # Maximum detections per frame
+  max_detections: 100
+  
+  # Classes to detect (None = all COCO classes)
+  # Common classes: 0=person, 2=car, 3=motorcycle, 5=bus, 7=truck
+  classes: null
+  
+  # Inference device
+  # Options: "cpu", "cuda", "mps" (Mac)
+  device: cpu
+
+# Object Tracking Settings
+tracking:
+  # Enable tracking
+  enabled: true
+  
+  # Tracker type
+  # Options: "bytetrack", "sort", "ocsort"
+  tracker: bytetrack
+  
+  # Track confidence threshold
+  track_threshold: 0.3
+  
+  # Minimum track length to consider valid
+  min_track_length: 3
+  
+  # Maximum age of track (frames) before removal
+  max_age: 30
+  
+  # Minimum detection confidence for new tracks
+  match_threshold: 0.8
+
+# 3D Scene Settings
+scene:
+  # Ground plane settings
+  ground:
+    # Size of the scene (in meters)
+    width: 50
+    depth: 100
+    
+    # Grid display
+    grid_size: 1
+    grid_color: "#444444"
+  
+  # Camera view settings
+  view:
+    # Default view mode
+    # Options: "perspective", "top_down", "split"
+    default: perspective
+    
+    # Perspective camera settings
+    perspective:
+      position: [20, 15, 20]  # x, y, z
+      look_at: [0, 0, 0]
+      fov: 60
+    
+    # Top-down camera settings
+    top_down:
+      position: [0, 50, 0]
+      look_at: [0, 0, 0]
+      orthographic: true
+  
+  # Lighting
+  lighting:
+    ambient_intensity: 0.5
+    directional_intensity: 1.0
+    shadow_enabled: true
+
+# Model Mapping Settings
+models:
+  # Base directory for GLB models
+  base_dir: models
+  
+  # Auto-select model based on detection
+  auto_select: true
+  
+  # Default model for unknown classes
+  default: models/markers/mrk_pin_location.glb
+  
+  # Class to model mappings
+  mappings:
+    # Vehicles
+    car: models/vehicles/veh_car_sedan_blue.glb
+    bus: models/vehicles/veh_bus_city_red.glb
+    truck: models/vehicles/veh_truck_delivery.glb
+    motorcycle: models/vehicles/veh_bike_motorcycle.glb
+    bicycle: models/vehicles/veh_bicycle_blue.glb
+    
+    # People
+    person: models/humans/hum_pedestrian_blue.glb
+    
+    # Infrastructure (for static scene)
+    traffic_light: models/infrastructure/traffic/inf_traffic_signal.glb
+    stop_sign: models/infrastructure/traffic/inf_sign_stop.glb
+
+# WebSocket Server Settings
+websocket:
+  # Server host
+  host: localhost
+  
+  # Server port
+  port: 8765
+  
+  # Update frequency (Hz)
+  update_rate: 30
+  
+  # Maximum clients
+  max_clients: 10
+  
+  # Message format
+  # Options: "full" (send all data), "delta" (send changes only)
+  mode: full
+
+# Dashboard Settings
+dashboard:
+  # Enable Streamlit dashboard
+  enabled: true
+  
+  # Dashboard theme
+  # Options: "light", "dark"
+  theme: dark
+  
+  # Metrics to display
+  metrics:
+    - vehicle_count
+    - pedestrian_count
+    - average_speed
+    - traffic_density
+  
+  # Charts to display
+  charts:
+    - time_series
+    - speed_distribution
+    - class_pie_chart
+  
+  # Update interval (ms)
+  update_interval: 100
+
+# Recording Settings
+recording:
+  # Enable recording
+  enabled: false
+  
+  # Output directory
+  output_dir: recordings
+  
+  # Record video
+  video: true
+  
+  # Record detection data (JSON)
+  data: true
+  
+  # Video codec
+  codec: mp4v
+  
+  # Frame rate for recording
+  fps: 30
+
+# Analytics Settings
+analytics:
+  # Enable analytics
+  enabled: true
+  
+  # Speed estimation
+  speed:
+    enabled: true
+    # Real-world scale (pixels per meter)
+    # Calibrate based on your camera view
+    pixels_per_meter: 50
+    # Smoothing factor for speed calculation
+    smoothing: 0.8
+  
+  # Trajectory tracking
+  trajectory:
+    enabled: true
+    # Maximum trail length
+    max_length: 50
+    # Trail color
+    color: "#FF5733"
+  
+  # Heatmap generation
+  heatmap:
+    enabled: false
+    # Resolution
+    resolution: 100
+    # Radius for each point
+    radius: 20
+    # Decay rate
+    decay: 0.95
+
+# Logging Settings
+logging:
+  # Log level
+  # Options: "DEBUG", "INFO", "WARNING", "ERROR"
+  level: INFO
+  
+  # Log to file
+  file: logs/realtime_visualizer.log
+  
+  # Log to console
+  console: true
+  
+  # Log format
+  format: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"

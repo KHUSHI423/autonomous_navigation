@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdgeDrive3D - Technical Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
+            background: linear-gradient(135deg, #0c0c1e 0%, #1a1a3e 50%, #0f0f2d 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.2));
+            border-radius: 20px;
+            border: 1px solid rgba(102,126,234,0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            font-size: 42px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            font-weight: 800;
+        }
+        
+        .header p {
+            font-size: 18px;
+            color: #a0a0c0;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        /* Problem Section */
+        .problem-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+        
+        .problem-card {
+            background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05));
+            border: 2px solid rgba(239,68,68,0.3);
+            border-radius: 16px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .problem-card::before {
+            content: '⚠️';
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 30px;
+        }
+        
+        .problem-card h3 {
+            color: #ff6b6b;
+            font-size: 20px;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        .problem-card p {
+            color: #c0c0d0;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        
+        /* Solution Section */
+        .solution-section {
+            background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05));
+            border: 2px solid rgba(34,197,94,0.3);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 50px;
+            position: relative;
+        }
+        
+        .solution-section h2 {
+            text-align: center;
+            font-size: 32px;
+            background: linear-gradient(135deg, #22c55e, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+        }
+        
+        .solution-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .solution-item {
+            background: rgba(34,197,94,0.1);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(34,197,94,0.3);
+        }
+        
+        .solution-item .icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+        
+        .solution-item h4 {
+            color: #4ade80;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .solution-item p {
+            color: #a0a0c0;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        /* Architecture Flowchart */
+        .architecture-section {
+            margin-bottom: 50px;
+        }
+        
+        .architecture-section h2 {
+            text-align: center;
+            font-size: 32px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 40px;
+        }
+        
+        .flowchart {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            align-items: center;
+        }
+        
+        .flow-row {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        
+        .flow-box {
+            background: linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.2));
+            border: 2px solid rgba(102,126,234,0.4);
+            border-radius: 16px;
+            padding: 25px 30px;
+            min-width: 280px;
+            max-width: 350px;
+            text-align: center;
+            position: relative;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .flow-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(102,126,234,0.4);
+            border-color: rgba(102,126,234,0.6);
+        }
+        
+        .flow-box .box-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+        }
+        
+        .flow-box h4 {
+            font-size: 18px;
+            color: #fff;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .flow-box ul {
+            list-style: none;
+            text-align: left;
+            font-size: 13px;
+            color: #a0a0c0;
+        }
+        
+        .flow-box ul li {
+            padding: 4px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .flow-box ul li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: #667eea;
+        }
+        
+        .flow-box.module-1 {
+            border-color: rgba(239,68,68,0.4);
+            background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.1));
+        }
+        
+        .flow-box.module-1 h4 {
+            color: #ff6b6b;
+        }
+        
+        .flow-box.module-2 {
+            border-color: rgba(34,197,94,0.4);
+            background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.1));
+        }
+        
+        .flow-box.module-2 h4 {
+            color: #4ade80;
+        }
+        
+        .flow-box.module-3 {
+            border-color: rgba(251,191,36,0.4);
+            background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(251,191,36,0.1));
+        }
+        
+        .flow-box.module-3 h4 {
+            color: #fbbf24;
+        }
+        
+        /* Arrow */
+        .arrow-down {
+            width: 3px;
+            height: 40px;
+            background: linear-gradient(to bottom, #667eea, #764ba2);
+            position: relative;
+        }
+        
+        .arrow-down::after {
+            content: '▼';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #667eea;
+            font-size: 16px;
+        }
+        
+        .arrow-right {
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            position: relative;
+            align-self: center;
+        }
+        
+        .arrow-right::after {
+            content: '▶';
+            position: absolute;
+            right: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #667eea;
+            font-size: 16px;
+        }
+        
+        /* Data Flow Section */
+        .dataflow-section {
+            background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 50px;
+            border: 1px solid rgba(102,126,234,0.3);
+        }
+        
+        .dataflow-section h2 {
+            text-align: center;
+            font-size: 28px;
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+        
+        .dataflow-diagram {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .dataflow-node {
+            background: linear-gradient(135deg, rgba(30,30,60,0.9), rgba(40,40,80,0.9));
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 20px 30px;
+            text-align: center;
+            min-width: 200px;
+        }
+        
+        .dataflow-node .icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .dataflow-node h4 {
+            color: #fff;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        
+        .dataflow-node p {
+            color: #8888aa;
+            font-size: 12px;
+        }
+        
+        /* Deployment Section */
+        .deployment-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        
+        .deployment-card {
+            background: linear-gradient(135deg, rgba(30,30,60,0.9), rgba(40,40,80,0.9));
+            border-radius: 20px;
+            padding: 35px;
+            border: 2px solid rgba(102,126,234,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .deployment-card.edge {
+            border-color: rgba(34,197,94,0.4);
+        }
+        
+        .deployment-card.cloud {
+            border-color: rgba(102,126,234,0.4);
+        }
+        
+        .deployment-card h3 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .deployment-card.edge h3 {
+            color: #4ade80;
+        }
+        
+        .deployment-card.cloud h3 {
+            color: #667eea;
+        }
+        
+        .deployment-card ul {
+            list-style: none;
+        }
+        
+        .deployment-card ul li {
+            padding: 10px 0;
+            padding-left: 30px;
+            position: relative;
+            color: #a0a0c0;
+            font-size: 14px;
+        }
+        
+        .deployment-card.edge ul li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #22c55e;
+            font-weight: bold;
+        }
+        
+        .deployment-card.cloud ul li::before {
+            content: '☁';
+            position: absolute;
+            left: 0;
+            color: #667eea;
+        }
+        
+        /* Comparison Table */
+        .comparison-section {
+            margin-bottom: 50px;
+        }
+        
+        .comparison-section h2 {
+            text-align: center;
+            font-size: 28px;
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(30,30,60,0.5);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        .comparison-table th {
+            background: linear-gradient(135deg, rgba(102,126,234,0.3), rgba(118,75,162,0.3));
+            padding: 20px;
+            text-align: left;
+            font-size: 16px;
+            color: #fff;
+        }
+        
+        .comparison-table td {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: #a0a0c0;
+            font-size: 14px;
+        }
+        
+        .comparison-table tr:hover {
+            background: rgba(102,126,234,0.1);
+        }
+        
+        .comparison-table .highlight {
+            color: #4ade80;
+            font-weight: 600;
+        }
+        
+        .comparison-table .cross {
+            color: #ff6b6b;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            background: rgba(30,30,60,0.5);
+            border-radius: 16px;
+            border: 1px solid rgba(102,126,234,0.3);
+        }
+        
+        .footer p {
+            color: #8888aa;
+            font-size: 14px;
+        }
+        
+        .footer .gradient-text {
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .flow-box, .problem-card, .solution-item, .deployment-card {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 28px;
+            }
+            
+            .flow-box {
+                min-width: 250px;
+                padding: 20px;
+            }
+            
+            .deployment-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🚗 EdgeDrive3D Technical Architecture</h1>
+            <p>Cost-Effective Autonomous Navigation System for Developing Regions</p>
+        </div>
+        
+        <!-- Problem Statement -->
+        <div class="problem-section">
+            <div class="problem-card">
+                <h3>High-Cost Sensors</h3>
+                <p>Traditional autonomous systems rely on expensive LiDAR sensors ($1,000-$75,000), making them inaccessible for developing regions and small-scale deployments.</p>
+            </div>
+            <div class="problem-card">
+                <h3>Lack of Infrastructure</h3>
+                <p>Most developing regions lack proper road monitoring infrastructure, real-time traffic data, and high-definition mapping systems required for autonomous navigation.</p>
+            </div>
+            <div class="problem-card">
+                <h3>Cost Prohibitive</h3>
+                <p>Complete autonomous navigation systems cost $50,000+, making them impractical for widespread adoption in budget-constrained environments.</p>
+            </div>
+        </div>
+        
+        <!-- Solution Overview -->
+        <div class="solution-section">
+            <h2>✅ Our Solution in a Nutshell</h2>
+            <div class="solution-grid">
+                <div class="solution-item">
+                    <div class="icon">💰</div>
+                    <h4>Avoiding High-Cost</h4>
+                    <p>Replace LiDAR with monocular camera + AI depth estimation</p>
+                </div>
+                <div class="solution-item">
+                    <div class="icon">📷</div>
+                    <h4>Monocular Camera Only</h4>
+                    <p>Single RGB camera ($20-50) instead of expensive sensor arrays</p>
+                </div>
+                <div class="solution-item">
+                    <div class="icon">🗺️</div>
+                    <h4>Google Maps API</h4>
+                    <p>Intelligent pre-mapping for reliable autonomous navigation</p>
+                </div>
+                <div class="solution-item">
+                    <div class="icon">🔄</div>
+                    <h4>Flexible Deployment</h4>
+                    <p>Edge processing or cloud-based computation options</p>
+                </div>
+                <div class="solution-item">
+                    <div class="icon">🎯</div>
+                    <h4>Real-Time Analysis</h4>
+                    <p>Continuous road, obstacle, and traffic infrastructure monitoring</p>
+                </div>
+                <div class="solution-item">
+                    <div class="icon">📊</div>
+                    <h4>Cost Reduction</h4>
+                    <p>90%+ cost reduction compared to traditional systems</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Architecture Flowchart -->
+        <div class="architecture-section">
+            <h2>🏗️ System Architecture Flowchart</h2>
+            <div class="flowchart">
+                <!-- Input Layer -->
+                <div class="flow-row">
+                    <div class="flow-box">
+                        <div class="box-icon">📷</div>
+                        <h4>Input: Monocular Camera</h4>
+                        <ul>
+                            <li>RGB Video Stream (30 FPS)</li>
+                            <li>Resolution: 640×480 to 1920×1080</li>
+                            <li>Cost: $20-50 USD</li>
+                            <li>USB/Webcam Interface</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="arrow-down"></div>
+                
+                <!-- Module 1: Perception -->
+                <div class="flow-row">
+                    <div class="flow-box module-1">
+                        <div class="box-icon">🧠</div>
+                        <h4>Module 1: Perception Engine</h4>
+                        <ul>
+                            <li>YOLOv8 Object Detection</li>
+                            <li>MiDaS Depth Estimation</li>
+                            <li>3D Position Calculation</li>
+                            <li>Bird's Eye View Mapping</li>
+                            <li>Lane Detection</li>
+                            <li>Processing: 15-30 FPS</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="arrow-down"></div>
+                
+                <!-- Module 2: GPS & Mapping -->
+                <div class="flow-row">
+                    <div class="flow-box module-2">
+                        <div class="box-icon">🗺️</div>
+                        <h4>Module 2: GPS + Maps Integration</h4>
+                        <ul>
+                            <li>GPS Receiver (USB/Serial)</li>
+                            <li>Google Maps API Integration</li>
+                            <li>Coordinate Transformation</li>
+                            <li>Object Geolocation</li>
+                            <li>Trajectory Logging</li>
+                            <li>Real-time Position Tracking</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="arrow-down"></div>
+                
+                <!-- Module 3: Decision Engine -->
+                <div class="flow-row">
+                    <div class="flow-box module-3">
+                        <div class="box-icon">⚡</div>
+                        <h4>Module 3: Decision Engine</h4>
+                        <ul>
+                            <li>Obstacle Avoidance Logic</li>
+                            <li>Path Planning</li>
+                            <li>Speed Control</li>
+                            <li>Emergency Stop</li>
+                            <li>Navigation Commands</li>
+                            <li>Safety Validation</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="arrow-down"></div>
+                
+                <!-- Output Layer -->
+                <div class="flow-row">
+                    <div class="flow-box">
+                        <div class="box-icon">🎬</div>
+                        <h4>Output: Visualization & Control</h4>
+                        <ul>
+                            <li>3D Interactive Map Display</li>
+                            <li>Real-time Dashboard</li>
+                            <li>Motor Control Signals</li>
+                            <li>Alert Notifications</li>
+                            <li>Data Logging</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Data Flow Diagram -->
+        <div class="dataflow-section">
+            <h2>📊 Data Flow Architecture</h2>
+            <div class="dataflow-diagram">
+                <div class="dataflow-node">
+                    <div class="icon">📷</div>
+                    <h4>Camera Feed</h4>
+                    <p>Raw RGB Frames</p>
+                </div>
+                <div class="dataflow-node">
+                    <div class="icon">🔍</div>
+                    <h4>Object Detection</h4>
+                    <p>2D Bounding Boxes</p>
+                </div>
+                <div class="dataflow-node">
+                    <div class="icon">📏</div>
+                    <h4>Depth Estimation</h4>
+                    <p>Depth Map (MiDaS)</p>
+                </div>
+                <div class="dataflow-node">
+                    <div class="icon">📍</div>
+                    <h4>3D Position</h4>
+                    <p>(X, Y, Z) Coordinates</p>
+                </div>
+                <div class="dataflow-node">
+                    <div class="icon">🌍</div>
+                    <h4>GPS Fusion</h4>
+                    <p>(Lat, Lon, Alt)</p>
+                </div>
+                <div class="dataflow-node">
+                    <div class="icon">🗺️</div>
+                    <h4>Map Overlay</h4>
+                    <p>Google Maps API</p>
+                </div>
+                <div class="dataflow-node">
+                    <div class="icon">🤖</div>
+                    <h4>Decision</h4>
+                    <p>Action Commands</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Deployment Options -->
+        <div class="deployment-section">
+            <div class="deployment-card edge">
+                <h3>🔧 Edge Deployment</h3>
+                <ul>
+                    <li>Raspberry Pi 4/5 (Local Processing)</li>
+                    <li>NVIDIA Jetson Nano/Xavier (GPU Accelerated)</li>
+                    <li>Low Latency (< 100ms)</li>
+                    <li>No Internet Dependency</li>
+                    <li>Lower Operating Cost</li>
+                    <li>Privacy: Data stays on device</li>
+                    <li>Limited by hardware compute power</li>
+                </ul>
+            </div>
+            <div class="deployment-card cloud">
+                <h3>☁️ Cloud Deployment</h3>
+                <ul>
+                    <li>AWS/GCP/Azure (Scalable Computing)</li>
+                    <li>Advanced AI Models (Larger, More Accurate)</li>
+                    <li>Centralized Fleet Management</li>
+                    <li>Over-the-air Updates</li>
+                    <li>Requires Internet Connection</li>
+                    <li>Higher Latency (200-500ms)</li>
+                    <li>Pay-per-use Pricing Model</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Comparison Table -->
+        <div class="comparison-section">
+            <h2>📈 Cost & Performance Comparison</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Traditional LiDAR System</th>
+                        <th>EdgeDrive3D (Our Solution)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Primary Sensor</td>
+                        <td>LiDAR ($1,000 - $75,000)</td>
+                        <td class="highlight">Monocular Camera ($20 - $50)</td>
+                    </tr>
+                    <tr>
+                        <td>GPS Module</td>
+                        <td>RTK GPS ($500 - $2,000)</td>
+                        <td class="highlight">USB GPS Dongle ($20 - $30)</td>
+                    </tr>
+                    <tr>
+                        <td>Compute Unit</td>
+                        <td>Industrial PC ($2,000 - $5,000)</td>
+                        <td class="highlight">Raspberry Pi ($35 - $80)</td>
+                    </tr>
+                    <tr>
+                        <td>Mapping</td>
+                        <td>HD Maps ($10,000+)</td>
+                        <td class="highlight">Google Maps API (Free tier)</td>
+                    </tr>
+                    <tr>
+                        <td>Total Hardware Cost</td>
+                        <td class="cross">$50,000 - $100,000+</td>
+                        <td class="highlight">$100 - $300</td>
+                    </tr>
+                    <tr>
+                        <td>Cost Reduction</td>
+                        <td>-</td>
+                        <td class="highlight">90-99% Cost Savings</td>
+                    </tr>
+                    <tr>
+                        <td>Detection Range</td>
+                        <td>100-200 meters</td>
+                        <td>50-100 meters</td>
+                    </tr>
+                    <tr>
+                        <td>Accuracy</td>
+                        <td>±2-5 cm (LiDAR)</td>
+                        <td>±10-50 cm (Vision-based)</td>
+                    </tr>
+                    <tr>
+                        <td>Weather Resistance</td>
+                        <td class="highlight">Better in rain/fog</td>
+                        <td>Limited in poor visibility</td>
+                    </tr>
+                    <tr>
+                        <td>Deployment Complexity</td>
+                        <td class="cross">High (Specialized training)</td>
+                        <td class="highlight">Low (Plug & Play)</td>
+                    </tr>
+                    <tr>
+                        <td>Maintenance</td>
+                        <td class="cross">High (Calibration required)</td>
+                        <td class="highlight">Minimal (Software updates)</td>
+                    </tr>
+                    <tr>
+                        <td>Scalability</td>
+                        <td class="cross">Limited (High cost per unit)</td>
+                        <td class="highlight">Excellent (Low cost per unit)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Key Technologies -->
+        <div class="architecture-section">
+            <h2>🛠️ Key Technologies Used</h2>
+            <div class="flowchart">
+                <div class="flow-row">
+                    <div class="flow-box">
+                        <div class="box-icon">🐍</div>
+                        <h4>Programming</h4>
+                        <ul>
+                            <li>Python 3.8+</li>
+                            <li>C++ (Performance-critical)</li>
+                            <li>JavaScript (Dashboard)</li>
+                        </ul>
+                    </div>
+                    <div class="flow-box">
+                        <div class="box-icon">🤖</div>
+                        <h4>AI/ML Frameworks</h4>
+                        <ul>
+                            <li>PyTorch</li>
+                            <li>Ultralytics YOLOv8</li>
+                            <li>MiDaS (Depth)</li>
+                        </ul>
+                    </div>
+                    <div class="flow-box">
+                        <div class="box-icon">📊</div>
+                        <h4>Visualization</h4>
+                        <ul>
+                            <li>Deck.gl (3D Maps)</li>
+                            <li>Streamlit (Dashboard)</li>
+                            <li>OpenCV (Image Processing)</li>
+                        </ul>
+                    </div>
+                    <div class="flow-box">
+                        <div class="box-icon">🌐</div>
+                        <h4>APIs & Services</h4>
+                        <ul>
+                            <li>Google Maps API</li>
+                            <li>OpenStreetMap</li>
+                            <li>GPS (NMEA Protocol)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>Built with ❤️ for <span class="gradient-text">affordable autonomous navigation</span></p>
+            <p style="margin-top: 10px;">EdgeDrive3D © 2024 | Making autonomy accessible to everyone</p>
+        </div>
+    </div>
+</body>
+</html>

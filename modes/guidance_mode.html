@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧑‍🦯 Guidance Mode - 3D Visualization</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/mode-3d.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body class="mode-page">
+    <nav class="mode-nav">
+        <div class="nav-content">
+            <a href="index.html" class="back-btn">← Back to Hub</a>
+            <div class="mode-title">
+                <span class="mode-icon">🧑‍🦯</span>
+                <h1>Guidance Mode</h1>
+            </div>
+            <div class="mode-status">
+                <span class="status-indicator live"></span>
+                <span>GUIDING</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="mode-container">
+        <div class="viewport-3d" id="viewport3d"></div>
+        <div class="control-panel">
+            <div class="panel-section">
+                <h3>🧭 Navigation Assist</h3>
+                <div class="mission-display">
+                    <div class="mission-item">
+                        <span class="mission-label">Path Status</span>
+                        <span class="mission-value status-ok" id="pathStatus">Clear</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Obstacles Ahead</span>
+                        <span class="mission-value" id="obstaclesAhead">0</span>
+                    </div>
+                    <div class="mission-item">
+                        <span class="mission-label">Voice Guidance</span>
+                        <span class="mission-value">Active</span>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>📊 Telemetry</h3>
+                <div class="telemetry-grid">
+                    <div class="telemetry-item">
+                        <span class="tele-label">Speed</span>
+                        <span class="tele-value" id="speedValue">0.6</span>
+                        <span class="tele-unit">m/s</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Battery</span>
+                        <span class="tele-value" id="batteryValue">91</span>
+                        <span class="tele-unit">%</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="tele-label">Ultrasonic</span>
+                        <span class="tele-value" id="ultrasonicValue">48.3</span>
+                        <span class="tele-unit">cm</span>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>🎮 Controls</h3>
+                <div class="button-grid">
+                    <button class="action-btn btn-primary" id="btnStartGuidance">▶️ Start Guidance</button>
+                    <button class="action-btn btn-warning" id="btnPause">⏸️ Pause</button>
+                    <button class="action-btn btn-danger" id="btnEmergencyStop">🛑 Stop</button>
+                    <button class="action-btn btn-success" id="btnCompleteGuidance">✅ Complete</button>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>🎥 Camera Feed</h3>
+                <div class="camera-feed" id="cameraFeed">
+                    <div class="feed-placeholder">
+                        <span class="feed-icon">📹</span>
+                        <span class="feed-text">Path Analysis View</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="toast-container" id="toastContainer"></div>
+    <script src="js/particles.js"></script>
+    <script src="js/social-modes-3d.js" data-mode="guidance"></script>
+    <script src="js/mode-controls.js"></script>
+</body>
+</html>

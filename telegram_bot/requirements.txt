@@ -1,0 +1,31 @@
+# EdgeDrive3D Telegram Bot - Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core Telegram Bot
+python-telegram-bot==20.7
+telegram==0.0.1
+
+# Computer Vision
+opencv-python==4.8.1.78
+numpy==1.24.3
+ultralytics==8.0.200
+
+# GPS & Mapping
+pynmea2==1.19.0
+pyserial==3.5
+folium==0.15.1
+geojson==3.0.1
+
+# Data Visualization
+matplotlib==3.8.2
+plotly==5.18.0
+
+# Utilities
+python-dotenv==1.0.0
+requests==2.31.0
+Pillow==10.1.0
+
+# Optional: Enhanced features
+# speechrecognition==3.10.0  # Voice commands
+# pyttsx3==2.90              # Text-to-speech
+# websockets==12.0           # Real-time communication
